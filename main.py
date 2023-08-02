@@ -1,7 +1,11 @@
 import json
 
 CHROME_PROFILE_NAME: str = "Profile 1"
-CHROME_BOOKMARKS_FILE_PATH: str = f"/Users/pieterdejong/Library/Application Support/Google/Chrome/{CHROME_PROFILE_NAME}/Bookmarks"
+CHROME_BOOKMARKS_FILE_PATH: str = (
+    f"/Users/pieterdejong/Library/Application Support/Google/Chrome/"
+    f"{CHROME_PROFILE_NAME}"
+    f"/Bookmarks"
+)
 
 
 def load_json_from_file(filepath: str) -> dict:
@@ -21,11 +25,11 @@ def preview(data, n: int = 1000) -> None:
 
 
 def main():
-    print(f"Starting bookmark analysis...\n")
+    print("Starting bookmark analysis...\n")
     data: dict = load_json_from_file(CHROME_BOOKMARKS_FILE_PATH)
 
     preview(data, n=1000)
-    print(f"Analysis complete...\n")
+    print("Analysis complete...\n")
 
 
 if __name__ == "__main__":

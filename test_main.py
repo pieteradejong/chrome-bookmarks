@@ -1,8 +1,5 @@
-import json
 import main
 import pytest
-
-# test that previewing of json prints correct output
 
 
 def test_load_valid_json_into_dict():
@@ -15,7 +12,7 @@ def test_load_valid_json_into_dict():
 
 
 def test_loading_invalid_json():
-    filepath: str = f"json_invalid"
+    filepath: str = "json_invalid"
     with pytest.raises(
         ValueError, match=r"Failed to convert JSON to dictionary\. Reason: .*"
     ):
