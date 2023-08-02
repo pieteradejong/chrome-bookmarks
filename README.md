@@ -3,7 +3,9 @@
 Author: Pieter de Jong
 Purpose: Analyze local Chrome bookmarks
 Audience: Anyone interested in the topic. 
-<span style="color:red">Warning about private data</span>.
+
+:exclamation: Warning: bookmarks are personal and always be careful with what data and code you publish.
+
 * Based on `Bookmarks` (``.json` format), which on Chrome for Mac should be readily accessible in a directory like `~/Library/Application Support/Google/Chrome/[your profile name]`. 
 * Find your local Chrome profile directory by navigating to `chrome://version/` in Chrome, and looking for `Profile Path`.
 
