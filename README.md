@@ -6,10 +6,18 @@ Audience: Anyone interested in the topic.
 
 :exclamation: Warning: bookmarks are personal and always be careful with what data and code you publish.
 
-* Based on `Bookmarks` (``.json` format), which on Chrome for Mac should be readily accessible in a directory like `~/Library/Application Support/Google/Chrome/[your profile name]`. 
-* Find your local Chrome profile directory by navigating to `chrome://version/` in Chrome, and looking for `Profile Path`.
+* Based on `Bookmarks` (`.json` format), which on Chrome for Mac should be readily accessible in a directory like `~/Library/Application Support/Google/Chrome/[your profile name]`. 
+* Find your local Chrome profile directory by navigating to `chrome://version` in Chrome, and looking for `Profile Path`.
 
 **Background**: I wanted to detect duplicate bookmarks and broken links among my bookmarks. Chrome stores bookmarks locally, which enables local analysis.
 
+## Usage
 
+Command line, from project directory:
+```bash
+$ python main.py
+```
+
+## Functionality
+* can preview the first `n` characters from your bookmarks file.
 
