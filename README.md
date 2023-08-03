@@ -21,3 +21,11 @@ $ python main.py
 ## Functionality
 * can preview the first `n` characters from your bookmarks file.
 
+## TODO
+* print with maxdepth=1
+* print tree-like structure of menus and number of leaves
+* list all pdf bookmarks
+* detect duplicate/similar URLs
+  * detect identical host names e.g. mydomain.com
+* detect bkmk "kind":
+  * article, job post, video, news, document, communications, social media, ...
