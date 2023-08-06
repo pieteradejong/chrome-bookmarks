@@ -22,6 +22,7 @@ $ python main.py
 * can preview the first `n` characters from your bookmarks file.
 
 ## TODO
+* process data: create flat list of: (name, url, url_components)
 * print with maxdepth=1
 * print tree-like structure of menus and number of leaves
 * list all pdf bookmarks
