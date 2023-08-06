@@ -19,7 +19,7 @@ $ python main.py
 ```
 
 ## Functionality
-* can preview the first `n` characters from your bookmarks file.
+* :white_check_mark: can preview the first `n` characters from your bookmarks file.
 
 ## TODO
 * process data: create flat list of: (name, url, url_components)
