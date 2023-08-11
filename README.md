@@ -44,6 +44,11 @@ The json object is a tree of objects:
 }
 
 ```
+### Data constraints
+* TODO: add analysis of `bookmark_obj`, `url_obj`, `folder_obj` structure
+* Folders can be empty, in which case a `folder_obj` exists with `children = []`, an empty array. (Tested by bookmarking website to new folder, subsequently removing from folder using Manager.)
+  
+
 
 ## Functionality
 * :white_check_mark: can preview the first `n` characters from your bookmarks file.
@@ -57,3 +62,4 @@ The json object is a tree of objects:
   * detect identical host names e.g. mydomain.com
 * detect bookmark "kind":
   * article, job post, video, news, document, communications, social media, ...
+* Object Oriented: 
