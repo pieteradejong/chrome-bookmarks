@@ -23,14 +23,26 @@ def preview(data: dict, n: int = 1000) -> None:
     print(f"Previewing first {n} characters of data...\n")
     print(json.dumps(data, indent=4)[:n])
 
+
 def preview_keys(data: dict) -> None:
-    print(f"Showing highest level keys only...\n")
+    print("Showing highest level keys only...\n")
     print(json.dumps(list(data.keys()), indent=4))
 
+
 def preview_bookmarks(data: dict) -> None:
-    print(f"Showing bookmarks only...\n")
+    print("Showing bookmarks only...\n")
     # print(json.dumps(data["roots"]["bookmark_bar"]["children"], indent=4))
     print(json.dumps(data["roots"], indent=4))
+
+
+# TODO: write function that extracts tree structure from dict.
+# leafs are e.g. metadata for that key-value, e.g. number/list/string/etc
+def dict_to_tree(data: dict) -> None:
+    pass
+    if not data:
+        return
+    # if
+
 
 def main():
     print("Starting bookmark analysis...\n")
@@ -39,7 +51,7 @@ def main():
     # preview(data, n=1000)
     # print("Analysis complete...\n")
 
-    preview_keys(data)
+    # preview_keys(data)
     preview_bookmarks(data)
 
 

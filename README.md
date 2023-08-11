@@ -18,6 +18,33 @@ Command line, from project directory:
 $ python main.py
 ```
 
+## Data structure
+json object:
+```json
+{
+  "checksum": "string",
+  "roots": "contains Bookmarks Bar, Other Bookmarks, Mobile Bookmarks",
+  "sync_metadata": "very long alphanumeric plus `+` and `/`"
+  "version": 1
+}
+```
+
+As part of the project I'd like to figure out the mechanism behind `sync_metadata`. Perhaps it's similar to `rsync`.
+
+The json object is a tree of objects:
+```json
+{
+  "date_added": "unix-like format",
+  "date_last_used": "unix-like format",
+  "date_modified": "unix-like format",
+  "guid": "GUID",
+  "id": "integer",
+  "name": "Name given by user in Chrome UI",
+  "type": "folder/url/..."
+}
+
+```
+
 ## Functionality
 * :white_check_mark: can preview the first `n` characters from your bookmarks file.
 
@@ -28,5 +55,5 @@ $ python main.py
 * list all pdf bookmarks
 * detect duplicate/similar URLs
   * detect identical host names e.g. mydomain.com
-* detect bkmk "kind":
+* detect bookmark "kind":
   * article, job post, video, news, document, communications, social media, ...
