@@ -12,7 +12,19 @@ CHROME_BOOKMARKS_FILE_PATH: str = (
 
 names_and_urls: tuple = []
 empty_folders: list = []
+url_hash_to_class: dict = {}
 
+@dataclass
+class URL:
+    scheme: str
+    hostname: str
+    port: Optional[int]
+    path: Optional[str]
+    query: Optional[str]
+    params: Optional[str]
+    fragment: Optional[str]
+    query_params: Optional[Dict[str, list]]
+    hash: int
 
 def load_json_from_file(filepath: str) -> dict:
     with open(filepath, "r") as f:
@@ -25,20 +37,20 @@ def load_json_from_file(filepath: str) -> dict:
             )
 
 
-def preview(data: dict, n: int = 1000) -> None:
-    print(f"Previewing first {n} characters of data...\n")
-    print(json.dumps(data, indent=4)[:n])
+# def preview(data: dict, n: int = 1000) -> None:
+#     print(f"Previewing first {n} characters of data...\n")
+#     print(json.dumps(data, indent=4)[:n])
 
 
-def preview_keys(data: dict) -> None:
-    print("Showing highest level keys only...\n")
-    print(json.dumps(list(data.keys()), indent=4))
+# def preview_keys(data: dict) -> None:
+#     print("Showing highest level keys only...\n")
+#     print(json.dumps(list(data.keys()), indent=4))
 
 
-def preview_level(data: dict) -> None:
-    print("Previewing...\n")
-    d = data["roots"]["bookmark_bar"]
-    print(d.keys())
+# def preview_level(data: dict) -> None:
+#     print("Previewing...\n")
+#     d = data["roots"]["bookmark_bar"]
+#     print(d.keys())
 
 
 def process_url_obj(curr_obj: dict) -> dict:
@@ -56,16 +68,7 @@ def process_unrecognized_object_type(root: dict) -> dict:
     return root
 
 
-@dataclass
-class URL:
-    scheme: str
-    hostname: str
-    port: Optional[int]
-    path: Optional[str]
-    query: Optional[str]
-    params: Optional[str]
-    fragment: Optional[str]
-    query_params: Optional[Dict[str, list]]
+
 
 
 def parse_url(url: str) -> Optional[URL]:
@@ -75,8 +78,8 @@ def parse_url(url: str) -> Optional[URL]:
         print("Invalid URL: Missing scheme or hostname.")
         return None
 
-    # `hostname` instead of `netloc` because former is sufficient subset for our needs
-    # `params` is rare but include for completeness' sake
+    # We use `hostname` (only domain name) over `netloc` (may include auth or port).
+    # Incl `params` for thoroughness, though seldom used in modern URLs.
     return URL(
         scheme=parsed_url.scheme,  # e.g., "https"
         hostname=parsed_url.hostname,  # e.g., "www.example.com"
@@ -86,9 +89,19 @@ def parse_url(url: str) -> Optional[URL]:
         query=parsed_url.query,  # e.g., "query=value"
         fragment=parsed_url.fragment,  # e.g., "fragment-id"
         query_params=parse_qs(parsed_url.query),  # e.g., {'query': ['value']}
+        hash=hash(parsed_url)
     )
 
+def detect_and_process_duplicates(urls: list[URL]) -> list[tuple[URL, int]]:
+    pass
+    # if not hsh in url_hash_to_class:
+    #     url_hash_to_class[hsh] = url_dc
+    # else:
+    #     process_duplicate_url(url_dc)
 
+
+# In Chrome, Bookmarks consist of "Bookmarks Bar", "Other", and "Mobile".
+# This is meant to traverse the first. May not work on the other two.
 def traverse_bookmark_bar(root: dict) -> None:
     if not root:
         return
@@ -104,23 +117,17 @@ def traverse_bookmark_bar(root: dict) -> None:
     else:
         process_unrecognized_object_type(root)
 
-
-def display_names_and_urls(nau: list) -> None:
-    for _ in nau:
-        # print(f"name: {_[0]}, url: {_[1]}")
-        print(f"name: {_[0]}, url: {parse_url(_[1])}")
-    print(len(nau))
+# Only for development purposes. Not integral to functional reqs.
+def display_names_and_urls(names_and_urls: list) -> None:
+    for nau in names_and_urls:
+        print(f"name: {nau[0]}, url: {parse_url(nau[1])}")
+    print(len(names_and_urls))
 
 
 def main():
-    print("Starting bookmark analysis...\n")
+    print("Starting bookmarks analysis...\n")
+
     data: dict = load_json_from_file(CHROME_BOOKMARKS_FILE_PATH)
-
-    # preview(data, n=1000)
-    # print("Analysis complete...\n")
-
-    # preview_keys(data)
-    # preview_level(data)
     traverse_bookmark_bar(data["roots"]["bookmark_bar"])
     display_names_and_urls(names_and_urls)
 
