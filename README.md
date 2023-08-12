@@ -49,9 +49,16 @@ The json object is a tree of objects:
 * Folders can be empty, in which case a `folder_obj` exists with `children = []`, an empty array. (Tested by bookmarking website to new folder, subsequently removing from folder using Manager.)
   
 
+## Notes
+* Project involves parsing URLs, obviously. We not to pursue any URL validation (as of this writing), because:
+  * Bookmarks are inherently very likely a valid URL format;
+  * The impact of an invalid URL should be very low as we're just doing specific reporting and processing tasks;
+  * URL validation is notoriously hard, so the cost-benefit trade-off is to limit time spent.
+
 
 ## Functionality
 * :white_check_mark: can preview the first `n` characters from your bookmarks file.
+* 
 
 ## TODO
 * process data: create flat list of: (name, url, url_components)

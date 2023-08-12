@@ -1,4 +1,7 @@
 import json
+from urllib.parse import urlparse, parse_qs
+from dataclasses import dataclass
+from typing import Optional, Dict
 
 CHROME_PROFILE_NAME: str = "Profile 1"
 CHROME_BOOKMARKS_FILE_PATH: str = (
@@ -8,6 +11,8 @@ CHROME_BOOKMARKS_FILE_PATH: str = (
 )
 
 names_and_urls: tuple = []
+empty_folders: list = []
+
 
 def load_json_from_file(filepath: str) -> dict:
     with open(filepath, "r") as f:
@@ -32,15 +37,56 @@ def preview_keys(data: dict) -> None:
 
 def preview_level(data: dict) -> None:
     print("Previewing...\n")
-    # print(json.dumps(data["roots"]["bookmark_bar"]["children"], indent=4))
-    # print(json.dumps(data["roots"]["bookmark_bar"], indent=4))
     d = data["roots"]["bookmark_bar"]
     print(d.keys())
 
-    
+
 def process_url_obj(curr_obj: dict) -> dict:
     names_and_urls.append((curr_obj["name"], curr_obj["url"]))
     return curr_obj
+
+
+def process_empty_folder(root: dict) -> dict:
+    empty_folders.append(root)
+    return root
+
+
+def process_unrecognized_object_type(root: dict) -> dict:
+    print(f"Found unrecognized object type: {root}")
+    return root
+
+
+@dataclass
+class URL:
+    scheme: str
+    hostname: str
+    port: Optional[int]
+    path: Optional[str]
+    query: Optional[str]
+    params: Optional[str]
+    fragment: Optional[str]
+    query_params: Optional[Dict[str, list]]
+
+
+def parse_url(url: str) -> Optional[URL]:
+    parsed_url = urlparse(url)
+
+    if not parsed_url.scheme or not parsed_url.hostname:
+        print("Invalid URL: Missing scheme or hostname.")
+        return None
+
+    # `hostname` instead of `netloc` because former is sufficient subset for our needs
+    # `params` is rare but include for completeness' sake
+    return URL(
+        scheme=parsed_url.scheme,  # e.g., "https"
+        hostname=parsed_url.hostname,  # e.g., "www.example.com"
+        port=parsed_url.port,  # e.g., 8080
+        path=parsed_url.path,  # e.g., "/path/to/resource"
+        params=parsed_url.params,  # e.g., "path-params"
+        query=parsed_url.query,  # e.g., "query=value"
+        fragment=parsed_url.fragment,  # e.g., "fragment-id"
+        query_params=parse_qs(parsed_url.query),  # e.g., {'query': ['value']}
+    )
 
 
 def traverse_bookmark_bar(root: dict) -> None:
@@ -54,21 +100,17 @@ def traverse_bookmark_bar(root: dict) -> None:
             for c in children:
                 traverse_bookmark_bar(c)
         else:
-            pass
-            # TODO: log/record empty folder
+            process_empty_folder(root)
     else:
-        print("WARNING: unknown type found")
-        # TODO: log error
-    # recursively traverse tree of bookmark_obj
-    # if url: is a leaf, just process and return None
-    # if folder: if empty, just return None
-    # if and not empty: recurse on each obj in children (dfs!)
-    
+        process_unrecognized_object_type(root)
+
 
 def display_names_and_urls(nau: list) -> None:
     for _ in nau:
-        print(f"name: {_[0]}, url: {_[1]}")
+        # print(f"name: {_[0]}, url: {_[1]}")
+        print(f"name: {_[0]}, url: {parse_url(_[1])}")
     print(len(nau))
+
 
 def main():
     print("Starting bookmark analysis...\n")
@@ -81,6 +123,8 @@ def main():
     # preview_level(data)
     traverse_bookmark_bar(data["roots"]["bookmark_bar"])
     display_names_and_urls(names_and_urls)
+
+    print(f"Found {len(empty_folders)} empty folders: {empty_folders}")
 
 
 if __name__ == "__main__":
