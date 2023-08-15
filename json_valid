@@ -1,0 +1,33 @@
+{
+   "checksum": "07e74iud89he7fe9nsoiu9410815eba92b",
+   "roots": {
+      "bookmark_bar": {
+         {
+            "date_added": "13327698678228",
+            "date_last_used": "13327624374057000",
+            "guid": "fake-jhdksy7889fujdisojf894ufj",
+            "id": "99999",
+            "meta_info": {
+               "power_bookmark_meta": ""
+            },
+            "name": "Hacker News",
+            "type": "url",
+            "url": "https://news.ycombinator.com/"
+         },
+         {
+            "date_added": "13327616207833228",
+            "date_last_used": "133278986770057000",
+            "guid": "fake-u89437th9845h7tf9845y8947598",
+            "id": "99898",
+            "meta_info": {
+               "power_bookmark_meta": ""
+            },
+            "name": "Game Programming Patterns",
+            "type": "url",
+            "url": "https://www.gameprogrammingpatterns.com/"
+         },
+      },
+   },
+   "sync_metadata": "fake0JLTmFiaGZrbGJBMmk5bmc9ZQAAAAAS7AEI/xQS5gEKHDlmYjFtMitJMFozcEF=",
+   "version": 1
+}
