@@ -57,6 +57,11 @@ The json object is a tree of objects:
   * The impact of an invalid URL should be very low as we're just doing specific reporting and processing tasks;
   * URL validation is notoriously hard, so the cost-benefit trade-off is to limit time spent.
 * Proper use case for Python's built-in `hash`: we only need unique identifiablity for URLs within one runtime session, it runs quickly and we don't need cryptographic security, or multi-session consistency.
+* Given: 
+  1) size of raw data is very limited and upper-bounded;
+  2) information retrieval will be central to many use cases;
+  3) a great user experience will require as rapid as possible retrieval;
+  4) therefore we should heavily prioritize retrieval speed and general convenience, at the expense of "storage efficiency". In normal English: **likely let's build a bunch of indices/hash tables**. 
 
 ## Functionality
 * :white_check_mark: can preview the first `n` characters from your bookmarks file.
@@ -78,4 +83,13 @@ The json object is a tree of objects:
 * Traversal will have as a side effect a few data structures that are built during traversal, perhaps e.g. duplicate bookmarks.
 * Then, the Traversal Result can be used to do analysis.
 * Important design question is how and why to do data parsing.
-  
+* Design IDEA: the user experience should be perhaps locally hosted and look like Chrome bookmarks UI, except with extra features.
+
+
+## Research
+In researching this project, I found `sync` metadata within the `json` file, and there's a useful resource describing the architecure behind it:
+[Chrome Sync's Model API](https://www.chromium.org/developers/design-documents/sync/model-api/). That document links to the source code behind [Chromium's Bookmark Manager](https://chromium.googlesource.com/chromium/src/+/master/chrome/browser/resources/bookmarks/), which will be useful for:
+* backend architecture changes and optimization,
+* front end user experience ideas,
+* some sense of how Google plans and documents products and features.
+
