@@ -1,3 +1,5 @@
+import sys
+import argparse
 import json
 from urllib.parse import urlparse, parse_qs
 from dataclasses import dataclass
@@ -26,16 +28,19 @@ class URL:
     query_params: Optional[Dict[str, list]]
     hash: int
 
-def load_json_from_file(filepath: str) -> dict:
+def load_json_from_file(filepath: str) -> Dict[str, any]:
     with open(filepath, "r") as f:
         try:
-            bookmarks: dict = json.load(f)
+            bookmarks: Dict[str, any] = json.load(f)
             return bookmarks
         except json.JSONDecodeError as e:
             raise ValueError(
                 f"Error: Failed to convert JSON to dictionary. Reason: {e}"
             )
-
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Error: The file {filepath} was not found.")
+        except PermissionError:
+            raise PermissionError(f"Error: Permission denied for accessing {filepath}.")
 
 # def preview(data: dict, n: int = 1000) -> None:
 #     print(f"Previewing first {n} characters of data...\n")
@@ -124,7 +129,11 @@ def display_names_and_urls(names_and_urls: list) -> None:
     print(len(names_and_urls))
 
 
-def main():
+def main(mode: str) -> None:
+    if mode != "local":
+        print("Exiting program. Running in non-local mode so will not attempt analysis.")
+        sys.exit(0)
+
     print("Starting bookmarks analysis...\n")
 
     data: dict = load_json_from_file(CHROME_BOOKMARKS_FILE_PATH)
@@ -135,4 +144,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Run the script in a specific mode.')
+    parser.add_argument('--mode', type=str, default="nonlocal", 
+                        help='Must specify "local" to attempt analysis.')
+    
+    args = parser.parse_args()
+    main(args.mode)
+    # TODO: to fix the tests, we must know whether json is supposed to be available,
+    # so we need to know whether running locally
