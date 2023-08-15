@@ -62,6 +62,8 @@ The json object is a tree of objects:
   2) information retrieval will be central to many use cases;
   3) a great user experience will require as rapid as possible retrieval;
   4) therefore we should heavily prioritize retrieval speed and general convenience, at the expense of "storage efficiency". In normal English: **likely let's build a bunch of indices/hash tables**. 
+* Python version choice: since `list[MyClass]` is only supported starting Python 3.9, I assume that version or later and will configure `ci.yml` accordingly.
+  * Will likely also adopt >=Python3.9 for all personal projects.
 
 ## Functionality
 * :white_check_mark: can preview the first `n` characters from your bookmarks file.
