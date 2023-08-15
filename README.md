@@ -76,7 +76,12 @@ The json object is a tree of objects:
   * detect identical host names e.g. mydomain.com
 * detect bookmark "kind":
   * article, job post, video, news, document, communications, social media, ...
-* Object Oriented: 
+* Object Oriented: implement classes and interfaces
+* User story: a user can add metadata (e.g. notes or labels) to a bookmark, folder, or multiple simultaneously.
+* User story: user can execute a filter against all, or a subset of, URLs: e.g. "find broken links".
+* ....
+
+
 
 ### Dev notes latest status:
 * Fix data flow between functions: `traverse_bookmark_bar` should return some kind of "traversal result" object, perhaps a list or folderObj's, urlObj's. And `process_*` functions should be renamed and refactored to contribute parts of the "traversal result". 
@@ -84,6 +89,7 @@ The json object is a tree of objects:
 * Then, the Traversal Result can be used to do analysis.
 * Important design question is how and why to do data parsing.
 * Design IDEA: the user experience should be perhaps locally hosted and look like Chrome bookmarks UI, except with extra features.
+
 
 
 ## Research
