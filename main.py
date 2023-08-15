@@ -16,6 +16,7 @@ names_and_urls: tuple = []
 empty_folders: list = []
 url_hash_to_class: dict = {}
 
+
 @dataclass
 class URL:
     scheme: str
@@ -27,6 +28,7 @@ class URL:
     fragment: Optional[str]
     query_params: Optional[Dict[str, list]]
     hash: int
+
 
 def load_json_from_file(filepath: str) -> Dict[str, any]:
     with open(filepath, "r") as f:
@@ -41,6 +43,7 @@ def load_json_from_file(filepath: str) -> Dict[str, any]:
             raise FileNotFoundError(f"Error: The file {filepath} was not found.")
         except PermissionError:
             raise PermissionError(f"Error: Permission denied for accessing {filepath}.")
+
 
 # def preview(data: dict, n: int = 1000) -> None:
 #     print(f"Previewing first {n} characters of data...\n")
@@ -73,9 +76,6 @@ def process_unrecognized_object_type(root: dict) -> dict:
     return root
 
 
-
-
-
 def parse_url(url: str) -> Optional[URL]:
     parsed_url = urlparse(url)
 
@@ -94,8 +94,9 @@ def parse_url(url: str) -> Optional[URL]:
         query=parsed_url.query,  # e.g., "query=value"
         fragment=parsed_url.fragment,  # e.g., "fragment-id"
         query_params=parse_qs(parsed_url.query),  # e.g., {'query': ['value']}
-        hash=hash(parsed_url)
+        hash=hash(parsed_url),
     )
+
 
 def detect_and_process_duplicates(urls: list[URL]) -> list[tuple[URL, int]]:
     pass
@@ -122,6 +123,7 @@ def traverse_bookmark_bar(root: dict) -> None:
     else:
         process_unrecognized_object_type(root)
 
+
 # Only for development purposes. Not integral to functional reqs.
 def display_names_and_urls(names_and_urls: list) -> None:
     for nau in names_and_urls:
@@ -131,7 +133,9 @@ def display_names_and_urls(names_and_urls: list) -> None:
 
 def main(mode: str) -> None:
     if mode != "local":
-        print("Exiting program. Running in non-local mode so will not attempt analysis.")
+        print(
+            "Exiting program. Running in non-local mode so will not attempt analysis."
+        )
         sys.exit(0)
 
     print("Starting bookmarks analysis...\n")
@@ -144,10 +148,14 @@ def main(mode: str) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run the script in a specific mode.')
-    parser.add_argument('--mode', type=str, default="nonlocal", 
-                        help='Must specify "local" to attempt analysis.')
-    
+    parser = argparse.ArgumentParser(description="Run the script in a specific mode.")
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="nonlocal",
+        help='Must specify "local" to attempt analysis.',
+    )
+
     args = parser.parse_args()
     main(args.mode)
     # TODO: to fix the tests, we must know whether json is supposed to be available,
