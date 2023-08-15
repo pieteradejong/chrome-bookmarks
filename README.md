@@ -1,4 +1,6 @@
 # Chrome Bookmarks Analysis
+[![pytest](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml)
+
 
 Author: Pieter de Jong
 Purpose: Analyze local Chrome bookmarks.
