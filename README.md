@@ -83,7 +83,7 @@ The json object is a tree of objects:
 * Object Oriented: implement classes and interfaces
 * User story: a user can add metadata (e.g. notes or labels) to a bookmark, folder, or multiple simultaneously.
 * User story: user can execute a filter against all, or a subset of, URLs: e.g. "find broken links".
-* ....
+* User story: user can easily compare folder locations of duplicate or similar URLs, and edit/delete/move accordingly.
 
 
 
