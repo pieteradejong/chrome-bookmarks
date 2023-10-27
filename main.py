@@ -3,7 +3,7 @@ import argparse
 import json
 from urllib.parse import urlparse, parse_qs
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Optional, Dict, Literal
 
 CHROME_PROFILE_NAME: str = "Profile 1"
 CHROME_BOOKMARKS_FILE_PATH: str = (
@@ -19,6 +19,7 @@ url_hash_to_class: dict = {}
 
 @dataclass
 class URL:
+    full: str
     scheme: str
     hostname: str
     port: Optional[int]
@@ -30,35 +31,34 @@ class URL:
     hash: int
 
 
+@dataclass
+class Folder:
+    children = []
+    date_added = (int,)
+    date_last_used = (int,)
+    date_modified = (int,)
+    guid = (str,)
+    id = (str,)
+    name = (str,)
+    type = Literal["folder"]
+
+
+def wrap_in_meganta(text: str) -> str:
+    magenta_start, magenta_end = "\033[95m", "\033[0m"
+    return f"{magenta_start}{text}{magenta_end}"
+
+
 def load_json_from_file(filepath: str) -> Dict[str, any]:
-    with open(filepath, "r") as f:
-        try:
-            bookmarks: Dict[str, any] = json.load(f)
+    try:
+        with open(filepath, "r") as file:
+            bookmarks = json.load(file)
             return bookmarks
-        except json.JSONDecodeError as e:
-            raise ValueError(
-                f"Error: Failed to convert JSON to dictionary. Reason: {e}"
-            )
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Error: The file {filepath} was not found.")
-        except PermissionError:
-            raise PermissionError(f"Error: Permission denied for accessing {filepath}.")
-
-
-# def preview(data: dict, n: int = 1000) -> None:
-#     print(f"Previewing first {n} characters of data...\n")
-#     print(json.dumps(data, indent=4)[:n])
-
-
-# def preview_keys(data: dict) -> None:
-#     print("Showing highest level keys only...\n")
-#     print(json.dumps(list(data.keys()), indent=4))
-
-
-# def preview_level(data: dict) -> None:
-#     print("Previewing...\n")
-#     d = data["roots"]["bookmark_bar"]
-#     print(d.keys())
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error: Failed to convert JSON to dictionary. Reason: {e}")
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Error: The file {filepath} was not found.")
+    except PermissionError:
+        raise PermissionError(f"Error: Permission denied for accessing {filepath}.")
 
 
 def process_url_obj(curr_obj: dict) -> dict:
@@ -86,6 +86,7 @@ def parse_url(url: str) -> Optional[URL]:
     # We use `hostname` (only domain name) over `netloc` (may include auth or port).
     # Incl `params` for thoroughness, though seldom used in modern URLs.
     return URL(
+        full=url,
         scheme=parsed_url.scheme,  # e.g., "https"
         hostname=parsed_url.hostname,  # e.g., "www.example.com"
         port=parsed_url.port,  # e.g., 8080
@@ -96,14 +97,6 @@ def parse_url(url: str) -> Optional[URL]:
         query_params=parse_qs(parsed_url.query),  # e.g., {'query': ['value']}
         hash=hash(parsed_url),
     )
-
-
-def detect_and_process_duplicates(urls: list[URL]) -> list[tuple[URL, int]]:
-    pass
-    # if not hsh in url_hash_to_class:
-    #     url_hash_to_class[hsh] = url_dc
-    # else:
-    #     process_duplicate_url(url_dc)
 
 
 # In Chrome, Bookmarks consist of "Bookmarks Bar", "Other", and "Mobile".
@@ -131,6 +124,18 @@ def display_names_and_urls(names_and_urls: list) -> None:
     print(len(names_and_urls))
 
 
+def detect_and_process_duplicates(names_and_urls: list) -> list[tuple[URL, int]]:
+    urls = [n[1] for n in names_and_urls]
+    print(f"Number of urls: {len(urls)}")
+    uniques, duplicates = set(), []
+    for u in urls:
+        if u in uniques:
+            duplicates.append(u)
+        else:
+            uniques.add(u)
+    print(f"Found {len(uniques)} unique URLs and {len(duplicates)} duplicates.")
+
+
 def main(mode: str) -> None:
     if mode != "local":
         print(
@@ -142,9 +147,11 @@ def main(mode: str) -> None:
 
     data: dict = load_json_from_file(CHROME_BOOKMARKS_FILE_PATH)
     traverse_bookmark_bar(data["roots"]["bookmark_bar"])
-    display_names_and_urls(names_and_urls)
+    # display_names_and_urls(names_and_urls)
+    detect_and_process_duplicates(names_and_urls)
 
-    print(f"Found {len(empty_folders)} empty folders: {empty_folders}")
+    to_print = f"Found {len(empty_folders)} empty folders: {empty_folders}"
+    print(wrap_in_meganta(to_print))
 
 
 if __name__ == "__main__":
