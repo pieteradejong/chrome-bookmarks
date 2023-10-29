@@ -1,5 +1,4 @@
-from fastapi import APIRouter, status
-from app import analysis
+from fastapi import APIRouter, HTTPException, status
 from app import analysis
 from app.config import logger
 from typing import Dict, Literal
@@ -10,8 +9,8 @@ class SuccessResponse(BaseModel):
     message: str
 
 
-class BookmarkResponse(BaseModel):
-    success: Literal["success"]
+class BookmarksResponse(BaseModel):
+    status: Literal["success"]
     result: Dict
 
 router = APIRouter()
@@ -22,11 +21,14 @@ async def root():
     return SuccessResponse(
         status="success", message="This application helps you analyze your Chrome bookmarks."
     )
-
-@router.get("/bookmarks", response_model=BookmarkResponse, status_code=status.HTTP_200_OK)
-async def bookmarks():
-    logger.info("Received root request")
-    # Retrieve all bookmarks from get_all analysis.py
-    # Return as an HTTP OK JSON object
-    bookmarks = analysis.bookmarks()
     
+
+
+@router.get("/bookmarks", response_model=BookmarksResponse, status_code=status.HTTP_200_OK)
+async def bookmarks():
+    try:
+        logger.info("Received bookmarks request")
+        bookmarks = analysis.bookmarks()
+        return BookmarksResponse(status="success", result=bookmarks)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

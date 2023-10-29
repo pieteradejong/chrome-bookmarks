@@ -43,7 +43,7 @@ class Folder:
     type = Literal["folder"]
 
 def bookmarks():
-    return {"test": ["bookmark_one", "bookmark_two", "bookmark_three"]}
+    return {"bookmarks": ["bookmark_one", "bookmark_two", "bookmark_three"]}
 
 def wrap_in_meganta(text: str) -> str:
     magenta_start, magenta_end = "\033[95m", "\033[0m"
