@@ -69,6 +69,9 @@ The json object is a tree of objects:
 
 ## Functionality
 * :white_check_mark: can preview the first `n` characters from your bookmarks file.
+* sort by date_added so you can see oldest/newest
+* sort by date_last_used so you can prioritize for deletion
+* 
 
 
 ## TODO
