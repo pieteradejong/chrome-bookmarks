@@ -19,4 +19,3 @@ def get_logger(name: str = "my_app"):
 
 
 logger = get_logger()
-

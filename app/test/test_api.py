@@ -1,8 +1,9 @@
 from fastapi.testclient import TestClient
 from app.api import router
+import pytest
 
 client = TestClient(router)
-import pytest
+
 
 @pytest.fixture
 def client():
@@ -12,7 +13,11 @@ def client():
 def test_root(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "message": "This application helps you analyze your Chrome bookmarks."}
+    assert response.json() == {
+        "status": "success",
+        "message": "This application helps you analyze your Chrome bookmarks.",
+    }
+
 
 def test_bookmarks(client):
     response = client.get("/bookmarks")
