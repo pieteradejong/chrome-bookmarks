@@ -33,7 +33,7 @@ async def root():
 async def bookmarks():
     try:
         logger.info("Received bookmarks request")
-        bookmarks = analysis.bookmarks()
+        bookmarks = analysis.bookmarks_all()
         return BookmarksResponse(status="success", result=bookmarks)
     except Exception as e:
         raise HTTPException(

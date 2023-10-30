@@ -4,6 +4,8 @@ import json
 from urllib.parse import urlparse, parse_qs
 from dataclasses import dataclass
 from typing import Optional, Dict, Literal
+from datetime import datetime, timedelta
+
 
 CHROME_PROFILE_NAME: str = "Profile 1"
 CHROME_BOOKMARKS_FILE_PATH: str = (
@@ -43,14 +45,28 @@ class Folder:
     type = Literal["folder"]
 
 
-def bookmarks():
-    return {"bookmarks": ["bookmark_one", "bookmark_two", "bookmark_three"]}
+def bookmarks_all():
+    data: dict = load_json_from_file(CHROME_BOOKMARKS_FILE_PATH)
+    return data['roots']
+
 
 
 def wrap_in_meganta(text: str) -> str:
     magenta_start, magenta_end = "\033[95m", "\033[0m"
     return f"{magenta_start}{text}{magenta_end}"
 
+# TODO: 
+# - write tests for these time functions;
+# - write the reverse process so you can translate date window into timevalues
+# - add function to search using time window
+def chrome_time_value_to_datetime(timevalue: int) -> datetime:
+    epoch = -11644473600000
+    return datetime(1601, 1, 1) + timedelta(milliseconds=epoch + timevalue / 1000)
+
+
+def chrome_time_value_to_datetime_repr(timevalue: int) -> str:
+    datetime_as_obj = chrome_time_value_to_datetime(timevalue)
+    return datetime_as_obj.strftime('%Y-%m-%d %H:%M:%S')
 
 def load_json_from_file(filepath: str) -> Dict[str, any]:
     try:

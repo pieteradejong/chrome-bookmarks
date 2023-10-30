@@ -75,9 +75,11 @@ The json object is a tree of objects:
 
 
 ## TODO
+* check for dead links
+* filter by last_visited
+* Find where `date_last_used = 0`
 * process data: create flat list of: (name, url, url_components)
-* print with maxdepth=1
-* print tree-like structure of menus and number of leaves
+* (print tree-like structure of menus and number of leaves)
 * list all pdf bookmarks
 * detect duplicate/similar URLs
   * detect identical host names e.g. mydomain.com
@@ -96,7 +98,7 @@ The json object is a tree of objects:
 * Then, the Traversal Result can be used to do analysis.
 * Important design question is how and why to do data parsing.
 * Design IDEA: the user experience should be perhaps locally hosted and look like Chrome bookmarks UI, except with extra features.
-
+* NOTE: each bookmark contains the fields `date_added` and `date_last_used`; the latter can be `0`. This has implications for analysis, including the ability to determine which have never been used after creation. (There seems to be no record of each usage timestamp, so we cannot analyze frequencies etc.)
 
 
 ## Research
