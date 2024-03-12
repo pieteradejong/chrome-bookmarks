@@ -1,17 +1,26 @@
 # Chrome Bookmarks Analysis
 [![pytest](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml)
 
+**Motivation**: I wanted to detect duplicate bookmarks and broken links among my bookmarks. Chrome stores bookmarks locally, which enables local analysis.
 
-Author: Pieter de Jong
-Purpose: Analyze local Chrome bookmarks.
-Audience: Anyone interested in the topic. 
-
-:exclamation: Warning: bookmarks are personal and always be careful with what data and code you publish.
+**Warning**: bookmarks are personal and always be careful with what data and code you publish.
 
 * Based on `Bookmarks` (`.json` format), which on Chrome for Mac should be readily accessible in a directory like `~/Library/Application Support/Google/Chrome/[your profile name]`. 
 * Find your local Chrome profile directory by navigating to `chrome://version` in Chrome, and looking for `Profile Path`.
 
-**Background**: I wanted to detect duplicate bookmarks and broken links among my bookmarks. Chrome stores bookmarks locally, which enables local analysis.
+
+## Update March, 2024
+* Developing as command line script instead of web service.
+* [DONE] load bookmarks json from local file
+* [DONE] parse bookmarks as dataclasses
+* [DONE] filter never visited
+* [WIP] filter invalid (non-200 resp.) [dont want to HEAD-req every time script is run]
+* [TODO] save results to local sqlite?
+* [TODO] get by type: YouTube, pdf, Gmail, etc.
+* [TODO] duplicates based on full host name
+* [TODO] find empty folders
+* [TODO] find similar bookmarks based on semantic vector embeddings
+
 
 ## Usage
 
@@ -51,6 +60,10 @@ The json object is a tree of objects:
 * Folders can be empty, in which case a `folder_obj` exists with `children = []`, an empty array. (Tested by bookmarking website to new folder, subsequently removing from folder using Manager.)
   
 
+## Code
+* `load_data()` -> `traverse_bookmarks_bar()` -> `process_obj`
+
+
 ## 'Design' Notes
 * Data size: a reasonable estimate would be max. ~1000s of bookmarks, so we can we quite inefficient if it improves our code, design, or user experience.
 * Network: all is run locally so there are no network considerations.
@@ -66,6 +79,7 @@ The json object is a tree of objects:
   4) therefore we should heavily prioritize retrieval speed and general convenience, at the expense of "storage efficiency". In normal English: **likely let's build a bunch of indices/hash tables**. 
 * Python version choice: since `list[MyClass]` is only supported starting Python 3.9, I assume that version or later and will configure `ci.yml` accordingly.
   * Will likely also adopt >=Python3.9 for all personal projects.
+* **December, 1 change**: will focus on script functionality instead of web app/API. I need to test all bookmarks for broken URLs/404, which is very straightforward as scripted functionality. Since audience is devs/tech-savvy anyway, they can easily run a script if the output if well formatted.
 
 ## Functionality
 * :white_check_mark: can preview the first `n` characters from your bookmarks file.

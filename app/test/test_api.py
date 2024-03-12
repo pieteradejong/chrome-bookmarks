@@ -19,6 +19,17 @@ def test_root(client):
     }
 
 
+def test_health():
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.headers["Content-Type"] == "application/json"
+
+    response_data = resp.json()
+    assert response_data["status"] == "success"
+    assert isinstance(response_data["result"], list)
+    assert response_data["message"] == "Application is healthy."
+
+
 def test_bookmarks(client):
     response = client.get("/bookmarks")
     assert response.status_code == 200

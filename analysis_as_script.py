@@ -1,11 +1,9 @@
-import sys
-import argparse
 import json
 from urllib.parse import urlparse, parse_qs
 from dataclasses import dataclass
 from typing import Optional, Dict, Literal, List
 from datetime import datetime, timedelta
-
+import requests
 
 CHROME_PROFILE_NAME: str = "Profile 1"
 CHROME_BOOKMARKS_FILE_PATH: str = (
@@ -13,9 +11,6 @@ CHROME_BOOKMARKS_FILE_PATH: str = (
     f"{CHROME_PROFILE_NAME}"
     f"/Bookmarks"
 )
-
-# TODO current issue is variable scope: globals arent defined wuthin function scope
-# need to handle global data var somehow
 
 
 @dataclass
@@ -57,23 +52,7 @@ class Folder:
 
 bookmarks_json: dict = {}
 bookmarks: List[Bookmark] = []
-
-
-def bookmarks_all_as_tree():
-    # data: dict = load_and_preprocess_data(CHROME_BOOKMARKS_FILE_PATH)
-    print("ccalling bookmarks_all_as_tree function")
-    print(bookmarks_json)
-    return bookmarks_json
-    # return bookmarks_json['roots']
-
-
-def bookmarks_all_as_flat():
-    return bookmarks
-
-
-def bookmarks_unvisited() -> list:
-    # print(f'bookmarks contains: {bookmarks}')
-    return [b for b in bookmarks if b.date_last_used == 0]
+folders: List[Folder] = []
 
 
 # TODO:
@@ -95,8 +74,7 @@ def load_and_preprocess_data() -> Dict[str, any]:
     try:
         with open(filepath, "r") as file:
             bookmarks_json = json.load(file)
-            traverse_bookmark_bar(bookmarks_json["roots"]["bookmark_bar"])
-            return True
+            return bookmarks_json
     except json.JSONDecodeError as e:
         raise ValueError(f"Error: Failed to convert JSON to dictionary. Reason: {e}")
     except (FileNotFoundError, PermissionError) as e:
@@ -106,34 +84,45 @@ def load_and_preprocess_data() -> Dict[str, any]:
 def parse_bookmark(bookmark_obj: dict) -> Bookmark:
     return Bookmark(
         url=parse_url(bookmark_obj["url"]),  # URL dataclass
-        date_added=bookmark_obj["date_added"],
-        date_last_used=bookmark_obj["date_last_used"],
+        date_added=int(bookmark_obj["date_added"]),
+        date_last_used=int(bookmark_obj["date_last_used"]),
         guid=bookmark_obj["guid"],
         id=bookmark_obj["id"],
         name=bookmark_obj["name"],
         type="url",
     )
 
+def parse_folder(folder_obj: dict) -> Folder:
+    return Folder(
+        children=folder_obj["children"],
+        date_added=int(folder_obj["date_added"]),
+        date_last_used=int(folder_obj["date_last_used"]),
+        date_modified=int(folder_obj["date_modified"]),
+        guid=folder_obj["guid"],
+        id=folder_obj["id"],
+        name=folder_obj["name"],
+        type="folder",
+    )
 
-def process_url_obj(url_obj: dict) -> dict:
-    if url_obj["type"] not in ["url", "folder"]:
-        raise ValueError(
-            f'Json component object must be of type `url` or `folder` - given: {[url_obj["type"]]}'
-        )
 
-    bookmark: Bookmark = parse_bookmark(url_obj)
-    # print(f'appending bookmark: {bookmark}')
-    bookmarks.append(bookmark)
-    # print(f'bookmarks length: {len(bookmarks)}')
+def process_url_obj(url_obj: dict) -> None:
+    obj_type = url_obj.get('type', None)
+    if obj_type not in ["url", "folder"]:
+        raise ValueError(f'Url object type must be `url` or `folder` - given: {[url_obj["type"]]}')
 
-    return url_obj
+    if obj_type == 'url':
+        bookmark: Bookmark = parse_bookmark(url_obj)
+        bookmarks.append(bookmark)
+    elif obj_type == 'folder':
+        folder: Folder = parse_folder(url_obj)
+        folders.append(folder)
 
 
 def parse_url(url: str) -> URL:
     parsed_url = urlparse(url)
 
     if not parsed_url.scheme or not parsed_url.hostname:
-        print("Invalid URL: Missing scheme or hostname.")
+        print(f"Invalid URL: Missing scheme or hostname: [{parsed_url}]")
         # TODO handle more severely? log? record otherwise?
         return
 
@@ -158,20 +147,15 @@ def parse_url(url: str) -> URL:
 def traverse_bookmark_bar(root: dict) -> None:
     if not root:
         return
-    if root["type"] == "url":
+    type = root.get('type', None)
+    if type in ['url', 'folder']:
         process_url_obj(root)
-    elif root["type"] == "folder":
-        # TODO process folder if desired
-        children = root["children"]
-        if len(children) > 0:
+        if type == 'folder':
+            children = root.get('children', [])
             for c in children:
                 traverse_bookmark_bar(c)
-        else:
-            pass
-            # TODO handle empty folder
     else:
-        pass
-        # TODO handle not url and not folder
+        raise ValueError(f'Unexpected type of object: [{root}] not of type url or folder.')
 
 
 # def detect_and_process_duplicates(names_and_urls: list) -> list[tuple[URL, int]]:
@@ -186,29 +170,48 @@ def traverse_bookmark_bar(root: dict) -> None:
 #     print(f"Found {len(uniques)} unique URLs and {len(duplicates)} duplicates.")
 
 
-def main(mode: str) -> None:
-    if mode != "local":
-        print(
-            "Exiting program. Running in non-local mode so will not attempt analysis."
-        )
-        sys.exit(0)
+def is_url_valid(url):
+    try:
+        print(f'HTTP request to {url}:')
+        response = requests.head(url, allow_redirects=True)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
 
+
+def get_url_invalid():
+    return list(filter(lambda x: is_url_valid(x.url.full) == False, bookmarks[:5]))
+
+
+def get_never_opened():
+    return list(filter(lambda x: x.date_last_used == 0, bookmarks))
+
+def folders_no_children() -> List[Folder]:
+    return list(filter(lambda folder: len(folder.children) == 0, folders))
+
+
+
+def main() -> None:
     print("Starting bookmarks analysis...\n")
 
-    data: dict = load_and_preprocess_data(CHROME_BOOKMARKS_FILE_PATH)
+    data: dict = load_and_preprocess_data()
     traverse_bookmark_bar(data["roots"]["bookmark_bar"])
+    never_opened = get_never_opened()
+
+    print(f"Count total bookmarks length: {len(bookmarks)}")
+    print(f'Numer of folders: {len(folders)}')
+
+    empty_folders = folders_no_children()
+    print(f"Number of folders with no children: {len(empty_folders)}")
+
+    print(f"Count of never opened: {len(never_opened)}")
+    
+
+    # url_invalid = get_url_invalid()
+    # print(f"Count of first 5 invalid: {len(url_invalid)}")
+    # for item in url_invalid:
+    #     print(f"invalid: {item}\n")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the script in a specific mode.")
-    parser.add_argument(
-        "--mode",
-        type=str,
-        default="nonlocal",
-        help='Must specify "local" to attempt analysis.',
-    )
-
-    args = parser.parse_args()
-    main(args.mode)
-    # TODO: to fix the tests, we must know whether json is supposed to be available,
-    # so we need to know whether running locally
+    main()
