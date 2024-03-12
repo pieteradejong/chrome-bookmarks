@@ -179,7 +179,7 @@ def get_never_opened():
 def get_empty_folders() -> List[Folder]:
     return list(filter(lambda folder: len(folder.children) == 0, folders))
 
-def find_duplicate_urls():
+def find_duplicate_urls() -> list:
     seen_urls = set()
     duplicates = []
     for bookmark in bookmarks:
@@ -189,6 +189,13 @@ def find_duplicate_urls():
             else:
                 seen_urls.add(bookmark.url.full)
     return duplicates
+
+def find_by_hostname(hostname: str) -> list:
+    found = []
+    for bk in bookmarks:
+        if bk.url and bk.url.hostname and hostname in bk.url.hostname:
+            found.append(bk)
+    return found
 
 
 def init():
@@ -234,6 +241,10 @@ def main() -> None:
     for duplicate in duplicates:
         print(f"Duplicate: {duplicate.url.full}")
 
+    yt = find_by_hostname('youtube.com')
+    print(f'YouTube: {yt}')
+
+    
     # url_invalid = get_url_invalid()
     # print(f"Count of first 5 invalid: {len(url_invalid)}")
     # for item in url_invalid:
