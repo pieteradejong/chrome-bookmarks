@@ -4,13 +4,10 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Literal, List
 from datetime import datetime, timedelta
 import requests
+import logging
+import argparse
 
-CHROME_PROFILE_NAME: str = "Profile 1"
-CHROME_BOOKMARKS_FILE_PATH: str = (
-    f"/Users/pieterdejong/Library/Application Support/Google/Chrome/"
-    f"{CHROME_PROFILE_NAME}"
-    f"/Bookmarks"
-)
+DEFAULT_CHROME_PROFILE_NAME = "Profile 1"
 
 
 @dataclass
@@ -70,9 +67,8 @@ def chrome_time_value_to_datetime_repr(timevalue: int) -> str:
 
 
 def load_and_preprocess_data() -> Dict[str, any]:
-    filepath = CHROME_BOOKMARKS_FILE_PATH
     try:
-        with open(filepath, "r") as file:
+        with open(chrome_bookmarks_file_path, "r") as file:
             bookmarks_json = json.load(file)
             return bookmarks_json
     except json.JSONDecodeError as e:
@@ -92,6 +88,7 @@ def parse_bookmark(bookmark_obj: dict) -> Bookmark:
         type="url",
     )
 
+
 def parse_folder(folder_obj: dict) -> Folder:
     return Folder(
         children=folder_obj["children"],
@@ -106,14 +103,16 @@ def parse_folder(folder_obj: dict) -> Folder:
 
 
 def process_url_obj(url_obj: dict) -> None:
-    obj_type = url_obj.get('type', None)
+    obj_type = url_obj.get("type", None)
     if obj_type not in ["url", "folder"]:
-        raise ValueError(f'Url object type must be `url` or `folder` - given: {[url_obj["type"]]}')
+        raise ValueError(
+            f'Url object type must be `url` or `folder` - given: {[url_obj["type"]]}'
+        )
 
-    if obj_type == 'url':
+    if obj_type == "url":
         bookmark: Bookmark = parse_bookmark(url_obj)
         bookmarks.append(bookmark)
-    elif obj_type == 'folder':
+    elif obj_type == "folder":
         folder: Folder = parse_folder(url_obj)
         folders.append(folder)
 
@@ -147,32 +146,22 @@ def parse_url(url: str) -> URL:
 def traverse_bookmark_bar(root: dict) -> None:
     if not root:
         return
-    type = root.get('type', None)
-    if type in ['url', 'folder']:
+    type = root.get("type", None)
+    if type in ["url", "folder"]:
         process_url_obj(root)
-        if type == 'folder':
-            children = root.get('children', [])
+        if type == "folder":
+            children = root.get("children", [])
             for c in children:
                 traverse_bookmark_bar(c)
     else:
-        raise ValueError(f'Unexpected type of object: [{root}] not of type url or folder.')
-
-
-# def detect_and_process_duplicates(names_and_urls: list) -> list[tuple[URL, int]]:
-#     urls = [n[1] for n in names_and_urls]
-#     print(f"Number of urls: {len(urls)}")
-#     uniques, duplicates = set(), []
-#     for u in urls:
-#         if u in uniques:
-#             duplicates.append(u)
-#         else:
-#             uniques.add(u)
-#     print(f"Found {len(uniques)} unique URLs and {len(duplicates)} duplicates.")
+        raise ValueError(
+            f"Unexpected type of object: [{root}] not of type url or folder."
+        )
 
 
 def is_url_valid(url):
     try:
-        print(f'HTTP request to {url}:')
+        print(f"HTTP request to {url}:")
         response = requests.head(url, allow_redirects=True)
         return response.status_code == 200
     except requests.RequestException:
@@ -186,31 +175,54 @@ def get_url_invalid():
 def get_never_opened():
     return list(filter(lambda x: x.date_last_used == 0, bookmarks))
 
+
 def folders_no_children() -> List[Folder]:
     return list(filter(lambda folder: len(folder.children) == 0, folders))
 
 
+def init():
+    logging.info("Initializing application")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+
+    parser = argparse.ArgumentParser(description="Analyze Chrome bookmarks.")
+    parser.add_argument(
+        "--profile",
+        help="Specify the Chrome profile name",
+        default=DEFAULT_CHROME_PROFILE_NAME,
+    )
+    args = parser.parse_args()
+
+    global chrome_bookmarks_file_path
+    chrome_bookmarks_file_path = (
+        "/Users/pieterdejong/Library/Application Support/Google/Chrome/"
+        f"{args.profile}"
+        f"/Bookmarks"
+    )
+
 
 def main() -> None:
-    print("Starting bookmarks analysis...\n")
+    init()
+    logging.info("Starting bookmarks analysis...\n")
 
     data: dict = load_and_preprocess_data()
     traverse_bookmark_bar(data["roots"]["bookmark_bar"])
     never_opened = get_never_opened()
 
     print(f"Count total bookmarks length: {len(bookmarks)}")
-    print(f'Numer of folders: {len(folders)}')
+    print(f"Numer of folders: {len(folders)}")
 
     empty_folders = folders_no_children()
     print(f"Number of folders with no children: {len(empty_folders)}")
 
     print(f"Count of never opened: {len(never_opened)}")
-    
 
     # url_invalid = get_url_invalid()
     # print(f"Count of first 5 invalid: {len(url_invalid)}")
     # for item in url_invalid:
     #     print(f"invalid: {item}\n")
+    logging.info("End of analysis")
 
 
 if __name__ == "__main__":
