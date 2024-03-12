@@ -176,8 +176,19 @@ def get_never_opened():
     return list(filter(lambda x: x.date_last_used == 0, bookmarks))
 
 
-def folders_no_children() -> List[Folder]:
+def get_empty_folders() -> List[Folder]:
     return list(filter(lambda folder: len(folder.children) == 0, folders))
+
+def find_duplicate_urls():
+    seen_urls = set()
+    duplicates = []
+    for bookmark in bookmarks:
+        if bookmark.url:
+            if bookmark.url.full in seen_urls:
+                duplicates.append(bookmark)
+            else:
+                seen_urls.add(bookmark.url.full)
+    return duplicates
 
 
 def init():
@@ -213,10 +224,15 @@ def main() -> None:
     print(f"Count total bookmarks length: {len(bookmarks)}")
     print(f"Numer of folders: {len(folders)}")
 
-    empty_folders = folders_no_children()
+    empty_folders = get_empty_folders()
     print(f"Number of folders with no children: {len(empty_folders)}")
 
     print(f"Count of never opened: {len(never_opened)}")
+
+    duplicates = find_duplicate_urls()
+    print(f"Number of duplicate bookmarks: {len(duplicates)}")
+    for duplicate in duplicates:
+        print(f"Duplicate: {duplicate.url.full}")
 
     # url_invalid = get_url_invalid()
     # print(f"Count of first 5 invalid: {len(url_invalid)}")

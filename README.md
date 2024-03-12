@@ -18,8 +18,9 @@
 * [TODO] save results to local sqlite?
 * [TODO] get by type: YouTube, pdf, Gmail, etc.
 * [TODO] duplicates based on full host name
-* [TODO] find empty folders
+* [DONE] find empty folders
 * [TODO] find similar bookmarks based on semantic vector embeddings
+* [TODO] add REQUIRED fields (with validation) for both Bookmark and Folder
 
 
 ## Usage
