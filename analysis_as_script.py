@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import requests
 import logging
 import argparse
+from collections import defaultdict, Counter
 
 DEFAULT_CHROME_PROFILE_NAME = "Profile 1"
 
@@ -169,7 +170,7 @@ def is_url_valid(url):
 
 
 def get_url_invalid():
-    return list(filter(lambda x: is_url_valid(x.url.full) == False, bookmarks[:5]))
+    return list(filter(lambda x: is_url_valid(x.url.full) is False, bookmarks[:5]))
 
 
 def get_never_opened():
@@ -178,6 +179,7 @@ def get_never_opened():
 
 def get_empty_folders() -> List[Folder]:
     return list(filter(lambda folder: len(folder.children) == 0, folders))
+
 
 def find_duplicate_urls() -> list:
     seen_urls = set()
@@ -190,12 +192,14 @@ def find_duplicate_urls() -> list:
                 seen_urls.add(bookmark.url.full)
     return duplicates
 
-def find_by_hostname(hostname: str) -> list:
-    found = []
-    for bk in bookmarks:
-        if bk.url and bk.url.hostname and hostname in bk.url.hostname:
-            found.append(bk)
-    return found
+
+def find_unique_hostnames() -> set:
+    unique_hostnames = defaultdict(int)
+    for bmk in bookmarks:
+        if bmk.url and bmk.url.full:
+            unique_hostnames[bmk.url.hostname] += 1
+
+    return Counter(unique_hostnames)
 
 
 def init():
@@ -241,10 +245,9 @@ def main() -> None:
     for duplicate in duplicates:
         print(f"Duplicate: {duplicate.url.full}")
 
-    yt = find_by_hostname('youtube.com')
-    print(f'YouTube: {yt}')
+    hostnames = find_unique_hostnames()
+    print(f"Unique hostnames:\n{hostnames}")
 
-    
     # url_invalid = get_url_invalid()
     # print(f"Count of first 5 invalid: {len(url_invalid)}")
     # for item in url_invalid:
