@@ -24,13 +24,22 @@ This project was created to help manage and analyze Chrome bookmarks by:
   - Analyze bookmark usage patterns
   - Sort by date added/last used
   - Filter by bookmark type (PDF, video, etc.)
+  - Detect and manage broken links:
+    - Check URL accessibility
+    - Categorize errors (DNS, SSL, Server, etc.)
+    - Delete broken bookmarks by title
+    - Cache results for performance
 
-### Phase 2 (Web Interface - Coming Soon)
+### Phase 2 (Web Interface - Current)
 - Visual display of bookmarks with:
   - Title and description
-  - Screenshot preview
   - Last visited timestamp
   - Basic bookmark statistics
+  - Broken link detection and management:
+    - Visual error categorization
+    - Detailed URL check information
+    - Cache statistics and management
+    - Real-time status updates
 - Local-only deployment
 - Modern, clean UI for bookmark management
 
@@ -45,12 +54,18 @@ The project follows a clean architecture pattern with clear separation of concer
    - Handles loading, parsing, and querying bookmark data
    - Maintains internal state of bookmarks and folders
    - Provides methods for data analysis and statistics
+   - Implements URL accessibility checking with caching:
+     - Per-URL caching with 7-day expiry
+     - Error categorization (DNS, SSL, Server, etc.)
+     - Detailed technical information collection
+     - Batch processing for performance
 
 2. **Models** (`app/models.py`)
    - Internal data models using Python dataclasses:
      - `URL`: Represents parsed URL components
      - `Bookmark`: Represents a bookmark entry
      - `Folder`: Represents a bookmark folder
+     - `ErrorDetails`: Represents URL check results
    - API models using Pydantic:
      - Response models for API endpoints
      - Input validation and serialization
@@ -59,12 +74,15 @@ The project follows a clean architecture pattern with clear separation of concer
 3. **API Layer** (`app/api.py`)
    - FastAPI router for REST endpoints
    - Uses dependency injection for `BookmarkStore`
+   - Implements in-memory caching for performance
    - Endpoints:
      - `/`: Basic API information
      - `/health`: Health check
      - `/bookmarks`: Get bookmark tree
      - `/unvisited`: List unvisited bookmarks
      - `/stats`: Get bookmark statistics
+     - `/broken`: Get broken bookmarks with caching
+     - `/broken/cache`: Cache management endpoints
 
 4. **CLI Interface** (`app/cli.py`)
    - Command-line interface using argparse
@@ -73,11 +91,19 @@ The project follows a clean architecture pattern with clear separation of concer
      - `list`: Display bookmarks (tree/flat format)
      - `stats`: Show bookmark statistics
      - `unvisited`: List unvisited bookmarks
+     - `broken`: Check and manage broken links
 
-5. **Application** (`app/main.py`)
-   - FastAPI application setup
-   - Initializes `BookmarkStore` singleton
-   - Configures logging and error handling
+5. **Frontend** (`frontend/`)
+   - React/Vite application with TypeScript
+   - Modern UI components using Mantine
+   - Features:
+     - Tabbed interface for different bookmark views
+     - Real-time cache statistics
+     - Visual error categorization
+     - Detailed URL check information
+     - Cache management controls
+   - State management with React Query
+   - Local-only operation
 
 ### Design Decisions
 
@@ -85,14 +111,17 @@ The project follows a clean architecture pattern with clear separation of concer
    - Data handling is isolated in `BookmarkStore`
    - API and CLI share the same core functionality
    - Models separate internal and API representations
+   - Frontend components are modular and reusable
 
 2. **Type Safety**
    - Extensive use of type hints (Python 3.9+)
    - Pydantic models for API validation
+   - TypeScript for frontend type safety
    - Dataclasses for internal data structures
 
 3. **State Management**
    - `BookmarkStore` encapsulates all state
+   - React Query for frontend state management
    - No global variables
    - Thread-safe for web server use
 
@@ -100,16 +129,23 @@ The project follows a clean architecture pattern with clear separation of concer
    - Consistent error handling across layers
    - Proper logging
    - User-friendly error messages
+   - Categorized error reporting for broken links
 
 5. **Privacy & Security**
    - Local-only operation
    - No external services
    - No data persistence beyond Chrome's bookmarks file
+   - Secure URL checking with proper SSL validation
 
 6. **Performance Considerations**
    - Optimized for small to medium bookmark collections (1000s of bookmarks)
    - In-memory processing for fast retrieval
    - Efficient URL parsing and validation
+   - Multi-level caching strategy:
+     - URL-level caching in backend (7 days)
+     - API response caching (7 days)
+     - Frontend query caching (7 days)
+   - Batch processing for URL checks
    - Use of hash tables for quick lookups
 
 ## Installation

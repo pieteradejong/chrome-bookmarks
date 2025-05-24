@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, List, Literal
+from typing import Optional, Dict, List, Literal, Any
 from pydantic import BaseModel, HttpUrl
 from datetime import datetime
 
@@ -93,4 +93,45 @@ class UnvisitedResponse(BaseModel):
 
 class StatsResponse(BaseModel):
     status: Literal["success"]
-    result: BookmarkStats 
+    result: BookmarkStats
+
+
+class BookmarkDetails(BaseModel):
+    status_code: Optional[int] = None
+    content_type: Optional[str] = None
+    response_time: Optional[float] = None
+    final_url: Optional[str] = None
+    ssl_valid: Optional[bool] = None
+    dns_resolved: Optional[bool] = None
+
+
+class BrokenBookmarkResponse(BaseModel):
+    bookmark: BookmarkResponse
+    error: str
+    details: Optional[BookmarkDetails] = None
+
+
+class BrokenBookmarksResponse(BaseModel):
+    status: Literal["success"]
+    result: List[BrokenBookmarkResponse]
+
+
+class DeleteBookmarkResponse(BaseModel):
+    status: Literal["success", "error"]
+    message: str
+    deleted: bool
+
+
+class BookmarkAnalysis(BaseModel):
+    total_bookmarks: int
+    total_folders: int
+    by_scheme: Dict[str, int]
+    by_tld: Dict[str, int]
+    by_status: Dict[str, int]
+    empty_folders: List[Dict[str, str]]
+    potential_duplicates: List[Dict[str, Any]]
+
+
+class AnalysisResponse(BaseModel):
+    status: Literal["success"]
+    result: BookmarkAnalysis 

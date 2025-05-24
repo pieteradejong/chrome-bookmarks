@@ -4,3 +4,5 @@ fastapi>=0.68.0
 uvicorn>=0.15.0
 pydantic>=1.8.0
 python-multipart>=0.0.5
+aiohttp==3.9.3
+fastapi-cache2==0.2.1

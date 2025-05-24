@@ -1,16 +1,21 @@
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AppShell, Container, Title, Stack, Tabs, LoadingOverlay, Text } from '@mantine/core';
-import { useBookmarks, useUnvisitedBookmarks, flattenBookmarks } from './hooks/useBookmarks';
+import { AppShell, Container, Title, Stack, Tabs, LoadingOverlay, Text, Switch, Group } from '@mantine/core';
+import { useBookmarks, useUnvisitedBookmarks, useBrokenBookmarks, flattenBookmarks } from './hooks/useBookmarks';
 import { BookmarkItem } from './components/BookmarkItem';
+import { BrokenBookmarkItem } from './components/BrokenBookmarkItem';
+import { CacheStats } from './components/CacheStats';
 import type { Bookmark } from './types/bookmarks';
+import { useState } from 'react';
 import '@mantine/core/styles.css';
 
 const queryClient = new QueryClient();
 
 function BookmarkList() {
+  const [includeDetails, setIncludeDetails] = useState(false);
   const { data: bookmarksData, isLoading: isLoadingBookmarks, error: bookmarksError } = useBookmarks();
   const { data: unvisitedData, isLoading: isLoadingUnvisited, error: unvisitedError } = useUnvisitedBookmarks();
+  const { data: brokenData, isLoading: isLoadingBroken, error: brokenError } = useBrokenBookmarks(includeDetails);
 
   const handleBookmarkClick = (bookmark: Bookmark) => {
     if (bookmark.url) {
@@ -22,11 +27,12 @@ function BookmarkList() {
   const rootBookmark = bookmarksData?.result || { id: 'root', name: 'Bookmarks', type: 'folder', children: [] };
   const allBookmarks = flattenBookmarks(rootBookmark);
   const unvisitedBookmarks = unvisitedData?.result || [];
+  const brokenBookmarks = brokenData?.result || [];
 
-  if (bookmarksError || unvisitedError) {
+  if (bookmarksError || unvisitedError || brokenError) {
     return (
       <Text c="red" size="lg">
-        Error loading bookmarks: {bookmarksError?.message || unvisitedError?.message}
+        Error loading bookmarks: {bookmarksError?.message || unvisitedError?.message || brokenError?.message}
       </Text>
     );
   }
@@ -36,6 +42,7 @@ function BookmarkList() {
       <Tabs.List>
         <Tabs.Tab value="all">All Bookmarks</Tabs.Tab>
         <Tabs.Tab value="unvisited">Unvisited</Tabs.Tab>
+        <Tabs.Tab value="broken">Broken</Tabs.Tab>
       </Tabs.List>
 
       <Tabs.Panel value="all">
@@ -68,6 +75,30 @@ function BookmarkList() {
             ))
           ) : (
             <Text c="dimmed">No unvisited bookmarks found</Text>
+          )}
+        </Stack>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="broken">
+        <Stack mt="md">
+          <Group justify="space-between" align="flex-start">
+            <Switch
+              label="Show detailed information"
+              checked={includeDetails}
+              onChange={(event) => setIncludeDetails(event.currentTarget.checked)}
+            />
+            <CacheStats />
+          </Group>
+          <LoadingOverlay visible={isLoadingBroken} />
+          {brokenBookmarks.length > 0 ? (
+            brokenBookmarks.map((brokenBookmark) => (
+              <BrokenBookmarkItem
+                key={brokenBookmark.bookmark.id}
+                brokenBookmark={brokenBookmark}
+              />
+            ))
+          ) : (
+            <Text c="dimmed">No broken bookmarks found</Text>
           )}
         </Stack>
       </Tabs.Panel>

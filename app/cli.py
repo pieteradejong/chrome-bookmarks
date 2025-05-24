@@ -5,6 +5,7 @@ import sys
 from typing import Optional
 from pathlib import Path
 import os
+import asyncio
 
 from app.bookmarks_data import BookmarkStore
 from app.config import logger
@@ -30,8 +31,8 @@ def setup_argparse() -> argparse.ArgumentParser:
     list_parser.add_argument(
         "--format",
         choices=["tree", "flat"],
-        default="tree",
-        help="Output format (default: tree)"
+        default="flat",
+        help="Output format (default: flat)"
     )
     
     # Stats command
@@ -42,6 +43,21 @@ def setup_argparse() -> argparse.ArgumentParser:
         "unvisited",
         help="List unvisited bookmarks"
     )
+    
+    # Broken command
+    broken_parser = subparsers.add_parser("broken", help="List broken bookmarks")
+    broken_parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Include detailed URL check information"
+    )
+    
+    # Analysis command
+    analysis_parser = subparsers.add_parser("analyze", help="Show detailed bookmark analysis")
+    
+    # Delete command
+    delete_parser = subparsers.add_parser("delete", help="Delete a bookmark")
+    delete_parser.add_argument("title", help="Title of the bookmark to delete")
     
     return parser
 
@@ -96,6 +112,79 @@ def print_unvisited(store: BookmarkStore) -> None:
         print(f"   Added: {added_date}")
 
 
+async def print_broken(store: BookmarkStore, include_details: bool = False) -> None:
+    """Print broken bookmarks."""
+    broken = await store.get_broken_bookmarks(include_details=include_details)
+    if not broken:
+        print("No broken bookmarks found.")
+        return
+        
+    print(f"\nFound {len(broken)} broken bookmarks:")
+    for bookmark, error, details in broken:
+        added_date = store.chrome_time_to_str(bookmark.date_added)
+        print(f"\n🔖 {bookmark.name}")
+        print(f"   URL: {bookmark.url}")
+        print(f"   Added: {added_date}")
+        print(f"   Error: {error}")
+        
+        if include_details and details:
+            print("   Details:")
+            if details.get("dns_resolved") is not None:
+                print(f"   - DNS Resolution: {'✓' if details['dns_resolved'] else '✗'}")
+            if details.get("ssl_valid") is not None:
+                print(f"   - SSL Valid: {'✓' if details['ssl_valid'] else '✗'}")
+            if details.get("status_code"):
+                print(f"   - Status Code: {details['status_code']}")
+            if details.get("content_type"):
+                print(f"   - Content Type: {details['content_type']}")
+            if details.get("response_time"):
+                print(f"   - Response Time: {details['response_time']:.2f}s")
+            if details.get("final_url") and details["final_url"] != bookmark.url:
+                print(f"   - Final URL: {details['final_url']}")
+
+
+def print_analysis(store: BookmarkStore) -> None:
+    """Print detailed bookmark analysis."""
+    analysis = store.get_bookmark_analysis()
+    
+    print("\n📊 Bookmark Analysis")
+    print("\nOverview:")
+    print(f"Total Bookmarks: {analysis['total_bookmarks']}")
+    print(f"Total Folders: {analysis['total_folders']}")
+    
+    print("\nBy Status:")
+    for status, count in analysis["by_status"].items():
+        print(f"  {status.title()}: {count}")
+    
+    print("\nBy Protocol:")
+    for scheme, count in sorted(analysis["by_scheme"].items(), key=lambda x: x[1], reverse=True):
+        print(f"  {scheme}: {count}")
+    
+    print("\nTop 10 TLDs:")
+    for tld, count in sorted(analysis["by_tld"].items(), key=lambda x: x[1], reverse=True)[:10]:
+        print(f"  .{tld}: {count}")
+    
+    if analysis["empty_folders"]:
+        print("\nEmpty Folders:")
+        for folder in analysis["empty_folders"]:
+            print(f"  📁 {folder['name']} (Added: {folder['date_added']})")
+    
+    if analysis["potential_duplicates"]:
+        print("\nPotential Duplicates:")
+        for dup in analysis["potential_duplicates"]:
+            print(f"\n  URL: {dup['url']}")
+            for bm in dup["bookmarks"]:
+                print(f"  - {bm['name']}")
+
+
+def delete_bookmark(store: BookmarkStore, title: str) -> None:
+    """Delete a bookmark by title."""
+    if store.delete_bookmark_by_title(title):
+        print(f"Successfully deleted bookmark: {title}")
+    else:
+        print(f"Bookmark not found: {title}")
+
+
 def main() -> Optional[int]:
     """Main CLI entry point."""
     parser = setup_argparse()
@@ -135,6 +224,15 @@ def main() -> Optional[int]:
         
     elif args.command == "unvisited":
         print_unvisited(store)
+        
+    elif args.command == "broken":
+        asyncio.run(print_broken(store, args.details))
+        
+    elif args.command == "analyze":
+        print_analysis(store)
+        
+    elif args.command == "delete":
+        delete_bookmark(store, args.title)
         
     return 0
 
