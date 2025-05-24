@@ -1,0 +1,28 @@
+Purpose of this project: personal tool to maintain and clean up my Chrome bookmarks.
+
+Use cases: 
+- Command line tool for initial bookmark management and cleanup
+- Local React/Vite frontend for visual bookmark management
+- Personal use only, no deployment needed
+
+Features:
+Phase 1 (CLI):
+- Clean and readable command line output of bookmarks
+- Basic bookmark management operations
+
+Phase 2 (React Frontend):
+- Visual display of bookmarks with:
+  - Title
+  - Description
+  - Screenshot preview
+  - Last visited timestamp
+  - Basic bookmark statistics
+- Local-only deployment
+- Modern, clean UI for bookmark management
+
+Technical Notes:
+- Focus on maintainability and clean code
+- Use TypeScript for type safety
+- Follow best practices for bookmark data handling
+- Ensure privacy (local-only, no external services)
+
