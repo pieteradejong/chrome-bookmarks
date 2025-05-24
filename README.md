@@ -1,3 +1,72 @@
+# Chrome Bookmarks Manager
+
+A personal tool for managing and cleaning up Chrome bookmarks.
+
+## Project Overview
+
+This tool helps manage and clean up Chrome bookmarks through:
+- A command-line interface for initial bookmark management and cleanup
+- A local React/Vite frontend for visual bookmark management
+- Personal use only, no deployment needed
+
+## Features
+
+### Phase 1 (CLI)
+- Clean and readable command line output of bookmarks
+- Basic bookmark management operations
+
+### Phase 2 (React Frontend)
+- Visual display of bookmarks with:
+  - Title
+  - Description
+  - Screenshot preview
+  - Last visited timestamp
+  - Basic bookmark statistics
+- Local-only deployment
+- Modern, clean UI for bookmark management
+
+## Technical Notes
+- Focus on maintainability and clean code
+- Use TypeScript for type safety
+- Follow best practices for bookmark data handling
+- Ensure privacy (local-only, no external services)
+
+## Project Structure
+- `data/`: Contains bookmark data files
+- `src/cli/`: Command-line interface tools
+- `src/web/`: React/Vite frontend
+- `tests/`: Test files
+- `logs/`: Application logs
+
+## Setup
+
+1. Run `./init.sh` to initialize the project
+   - Creates Python virtual environment
+   - Copies latest Chrome bookmarks to data directory
+2. Activate the virtual environment: `source env/bin/activate`
+3. Run the CLI tool: `python src/cli/main.py`
+
+## Development
+- CLI tool: Python/TypeScript
+- Frontend: React/Vite
+- Local-only deployment
+
+## Chrome Bookmarks Location
+Chrome stores bookmarks in a JSON file within your profile directory. The exact location depends on your Chrome profile:
+
+- Default profile: `~/Library/Application Support/Google/Chrome/Default/Bookmarks`
+- Profile 1: `~/Library/Application Support/Google/Chrome/Profile 1/Bookmarks`
+- Profile 2: `~/Library/Application Support/Google/Chrome/Profile 2/Bookmarks`
+- etc.
+
+To find your exact profile path:
+1. Open Chrome
+2. Visit `chrome://version`
+3. Look for the "Profile Path" entry
+4. The Bookmarks file will be in that directory
+
+The initialization script copies this file to `data/bookmarks.json` for processing.
+
 # Chrome Bookmarks Analysis
 [![pytest](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml)
 

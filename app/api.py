@@ -3,7 +3,18 @@ from app import analysis
 from app.config import logger
 from typing import Dict, Literal, List, Optional
 from pydantic import BaseModel
+import logging
 
+logger = logging.getLogger(__name__)
+
+class Bookmark(BaseModel):
+    id: str
+    name: str
+    url: Optional[str] = None
+    type: Literal["url", "folder"]
+    dateAdded: Optional[int] = None
+    lastVisited: Optional[int] = None
+    children: Optional[List['Bookmark']] = None
 
 class SuccessResponse(BaseModel):
     status: Literal["success"]
@@ -12,18 +23,18 @@ class SuccessResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: Literal["success", "error"]
-    result: Optional[list]
-    message: Optional[str]
+    result: Optional[List[str]] = None
+    message: Optional[str] = None
 
 
 class BookmarksResponse(BaseModel):
     status: Literal["success"]
-    result: Dict
+    result: Bookmark
 
 
 class UnvisitedResponse(BaseModel):
     status: Literal["success"]
-    result: List
+    result: List[Bookmark]
 
 
 router = APIRouter()
@@ -60,11 +71,18 @@ async def health():
 async def bookmarks():
     try:
         logger.info("Received bookmarks request")
-        bookmarks = analysis.bookmarks_all_as_tree()
-        return BookmarksResponse(status="success", result=bookmarks)
+        bookmark_tree = analysis.bookmarks_all_as_tree()
+        if not bookmark_tree:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No bookmarks found"
+            )
+        return BookmarksResponse(status="success", result=bookmark_tree)
     except Exception as e:
+        logger.error(f"Error retrieving bookmarks: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
 
 
@@ -73,10 +91,15 @@ async def bookmarks():
 )
 async def unvisited():
     try:
-        logger.info("Received bookmarks request")
-        bookmarks = analysis.bookmarks_unvisited()
-        return UnvisitedResponse(status="success", result=bookmarks)
+        logger.info("Received unvisited bookmarks request")
+        unvisited_bookmarks = analysis.bookmarks_unvisited()
+        if not unvisited_bookmarks:
+            logger.info("No unvisited bookmarks found")
+            return UnvisitedResponse(status="success", result=[])
+        return UnvisitedResponse(status="success", result=unvisited_bookmarks)
     except Exception as e:
+        logger.error(f"Error retrieving unvisited bookmarks: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
