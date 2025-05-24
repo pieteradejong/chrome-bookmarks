@@ -260,6 +260,69 @@ chrome-bookmarks/
 - No external service dependencies
 - Efficient in-memory processing
 
+## Roadmap
+
+### 1. API Endpoints & Data Processing
+
+#### Bookmark Management Endpoints
+- `POST /bookmarks/cleanup` - Endpoint to identify and suggest duplicate bookmarks
+- `POST /bookmarks/archive` - Archive old/unused bookmarks
+- `GET /bookmarks/search` - Search bookmarks with filters (by date, folder, tags)
+- `GET /bookmarks/folders` - Get folder statistics and structure
+- `GET /bookmarks/duplicates` - Find potential duplicate bookmarks
+- `GET /bookmarks/export` - Export bookmarks in different formats (JSON, HTML, CSV)
+
+#### Enhanced Statistics
+- `GET /stats/folders` - Detailed folder usage statistics
+- `GET /stats/timeline` - Bookmark creation/usage over time
+- `GET /stats/domains` - Most bookmarked domains and their categories
+
+### 2. Data Processing Improvements
+- Implement bookmark categorization using URL patterns or machine learning
+- Add metadata extraction from bookmarked pages (title, description, favicon)
+- Implement bookmark tagging system
+- Add last visited date tracking
+- Implement bookmark health checks (check if URLs are still valid)
+- Add support for bookmark notes/annotations
+
+### 3. UI Improvements (React Frontend)
+- Modern dashboard with:
+  - Visual bookmark tree with collapsible folders
+  - Grid/List view toggle for bookmarks
+  - Drag-and-drop folder organization
+  - Quick search with filters
+  - Tag management interface
+  - Bookmark preview cards with:
+    - Screenshot thumbnails
+    - Website favicons
+    - Last visited date
+    - Visit count
+    - Custom notes
+  - Statistics visualizations:
+    - Folder size distribution
+    - Bookmark creation timeline
+    - Domain distribution
+    - Most visited bookmarks
+  - Dark/Light theme support
+  - Responsive design for different screen sizes
+
+### 4. CLI Improvements
+- Interactive TUI (Text User Interface) for bookmark management
+- Rich terminal output with colors and formatting
+- Export functionality to different formats
+- Batch operations for bookmark management
+- Quick search and filter capabilities
+- Bookmark health check command
+- Duplicate detection and cleanup
+
+### 5. Technical Improvements
+- Add caching for better performance
+- Implement proper error handling and recovery
+- Add data validation and sanitization
+- Implement proper logging and monitoring
+- Add automated tests
+- Add documentation for API and CLI usage
+
 ## Contributing
 
 This is a personal project, but suggestions and improvements are welcome:
