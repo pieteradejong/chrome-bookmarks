@@ -1,63 +1,185 @@
 # Chrome Bookmarks Manager
 
-A personal tool for managing and cleaning up Chrome bookmarks.
+[![pytest](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml)
 
-## Project Overview
+A personal tool for managing and cleaning up Chrome bookmarks, featuring both a command-line interface and a local web interface. The project helps detect duplicate bookmarks, broken links, and provides insights into bookmark usage patterns.
 
-This tool helps manage and clean up Chrome bookmarks through:
-- A command-line interface for initial bookmark management and cleanup
-- A local React/Vite frontend for visual bookmark management
-- Personal use only, no deployment needed
+## Motivation
+
+This project was created to help manage and analyze Chrome bookmarks by:
+- Detecting duplicate bookmarks and broken links
+- Analyzing bookmark usage patterns
+- Providing a clean interface for bookmark management
+- Maintaining privacy through local-only operation
 
 ## Features
 
-### Phase 1 (CLI)
+### Phase 1 (CLI) - Current Focus
 - Clean and readable command line output of bookmarks
-- Basic bookmark management operations
+- Basic bookmark management operations:
+  - List bookmarks in tree or flat format
+  - View bookmark statistics
+  - Find unvisited bookmarks
+  - Identify duplicate URLs
+  - Analyze bookmark usage patterns
+  - Sort by date added/last used
+  - Filter by bookmark type (PDF, video, etc.)
 
-### Phase 2 (React Frontend)
+### Phase 2 (Web Interface - Coming Soon)
 - Visual display of bookmarks with:
-  - Title
-  - Description
+  - Title and description
   - Screenshot preview
   - Last visited timestamp
   - Basic bookmark statistics
 - Local-only deployment
 - Modern, clean UI for bookmark management
 
-## Technical Notes
-- Focus on maintainability and clean code
-- Use TypeScript for type safety
-- Follow best practices for bookmark data handling
-- Ensure privacy (local-only, no external services)
+## Architecture
 
-## Project Structure
-- `data/`: Contains bookmark data files
-- `src/cli/`: Command-line interface tools
-- `src/web/`: React/Vite frontend
-- `tests/`: Test files
-- `logs/`: Application logs
+The project follows a clean architecture pattern with clear separation of concerns:
 
-## Setup
+### Core Components
 
-1. Run `./init.sh` to initialize the project
-   - Creates Python virtual environment
-   - Copies latest Chrome bookmarks to data directory
-2. Activate the virtual environment: `source env/bin/activate`
-3. Run the CLI tool: `python src/cli/main.py`
+1. **Data Layer** (`app/bookmarks_data.py`)
+   - `BookmarkStore` class encapsulates all bookmark data operations
+   - Handles loading, parsing, and querying bookmark data
+   - Maintains internal state of bookmarks and folders
+   - Provides methods for data analysis and statistics
 
-## Development
-- CLI tool: Python/TypeScript
-- Frontend: React/Vite
-- Local-only deployment
+2. **Models** (`app/models.py`)
+   - Internal data models using Python dataclasses:
+     - `URL`: Represents parsed URL components
+     - `Bookmark`: Represents a bookmark entry
+     - `Folder`: Represents a bookmark folder
+   - API models using Pydantic:
+     - Response models for API endpoints
+     - Input validation and serialization
+     - Type safety and documentation
+
+3. **API Layer** (`app/api.py`)
+   - FastAPI router for REST endpoints
+   - Uses dependency injection for `BookmarkStore`
+   - Endpoints:
+     - `/`: Basic API information
+     - `/health`: Health check
+     - `/bookmarks`: Get bookmark tree
+     - `/unvisited`: List unvisited bookmarks
+     - `/stats`: Get bookmark statistics
+
+4. **CLI Interface** (`app/cli.py`)
+   - Command-line interface using argparse
+   - Shares core functionality with API
+   - Commands:
+     - `list`: Display bookmarks (tree/flat format)
+     - `stats`: Show bookmark statistics
+     - `unvisited`: List unvisited bookmarks
+
+5. **Application** (`app/main.py`)
+   - FastAPI application setup
+   - Initializes `BookmarkStore` singleton
+   - Configures logging and error handling
+
+### Design Decisions
+
+1. **Separation of Concerns**
+   - Data handling is isolated in `BookmarkStore`
+   - API and CLI share the same core functionality
+   - Models separate internal and API representations
+
+2. **Type Safety**
+   - Extensive use of type hints (Python 3.9+)
+   - Pydantic models for API validation
+   - Dataclasses for internal data structures
+
+3. **State Management**
+   - `BookmarkStore` encapsulates all state
+   - No global variables
+   - Thread-safe for web server use
+
+4. **Error Handling**
+   - Consistent error handling across layers
+   - Proper logging
+   - User-friendly error messages
+
+5. **Privacy & Security**
+   - Local-only operation
+   - No external services
+   - No data persistence beyond Chrome's bookmarks file
+
+6. **Performance Considerations**
+   - Optimized for small to medium bookmark collections (1000s of bookmarks)
+   - In-memory processing for fast retrieval
+   - Efficient URL parsing and validation
+   - Use of hash tables for quick lookups
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/chrome-bookmarks.git
+   cd chrome-bookmarks
+   ```
+
+2. Run the initialization script:
+   ```bash
+   ./init.sh
+   ```
+
+This will:
+- Create a Python virtual environment
+- Install required dependencies
+- Set up the initial project structure
+- Copy your Chrome bookmarks to the data directory
+
+## Usage
+
+### Command Line Interface
+
+The CLI provides several commands for bookmark management:
+
+```bash
+# List bookmarks in tree format
+python -m app.cli list
+
+# List bookmarks in flat format
+python -m app.cli list --format flat
+
+# Show bookmark statistics
+python -m app.cli stats
+
+# List unvisited bookmarks
+python -m app.cli unvisited
+
+# Use a different Chrome profile
+python -m app.cli --profile "Profile 2" list
+```
+
+### Web Interface
+
+Start the local web server:
+```bash
+python -m app.main
+```
+
+The API will be available at `http://localhost:8000` with the following endpoints:
+
+- `GET /`: API information
+- `GET /health`: Health check
+- `GET /bookmarks`: Get bookmark tree
+- `GET /unvisited`: List unvisited bookmarks
+- `GET /stats`: Get bookmark statistics
+
+API documentation is available at:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
 ## Chrome Bookmarks Location
+
 Chrome stores bookmarks in a JSON file within your profile directory. The exact location depends on your Chrome profile:
 
 - Default profile: `~/Library/Application Support/Google/Chrome/Default/Bookmarks`
 - Profile 1: `~/Library/Application Support/Google/Chrome/Profile 1/Bookmarks`
 - Profile 2: `~/Library/Application Support/Google/Chrome/Profile 2/Bookmarks`
-- etc.
 
 To find your exact profile path:
 1. Open Chrome
@@ -65,130 +187,94 @@ To find your exact profile path:
 3. Look for the "Profile Path" entry
 4. The Bookmarks file will be in that directory
 
-The initialization script copies this file to `data/bookmarks.json` for processing.
+## Data Structure
 
-# Chrome Bookmarks Analysis
-[![pytest](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml)
+Chrome bookmarks are stored in a JSON file with the following structure:
 
-**Motivation**: I wanted to detect duplicate bookmarks and broken links among my bookmarks. Chrome stores bookmarks locally, which enables local analysis.
-
-**Warning**: bookmarks are personal and always be careful with what data and code you publish.
-
-* Based on `Bookmarks` (`.json` format), which on Chrome for Mac should be readily accessible in a directory like `~/Library/Application Support/Google/Chrome/[your profile name]`. 
-* Find your local Chrome profile directory by navigating to `chrome://version` in Chrome, and looking for `Profile Path`.
-
-
-## Update March, 2024
-* Developing as command line script instead of web service.
-* [DONE] load bookmarks json from local file
-* [DONE] parse bookmarks as dataclasses
-* [DONE] filter never visited
-* [WIP] filter invalid (non-200 resp.) [dont want to HEAD-req every time script is run]
-* [TODO] save results to local sqlite?
-* [TODO] get by type: YouTube, pdf, Gmail, etc.
-* [DONE] duplicates based on full host name
-* [DONE] find empty folders
-* [TODO] find similar bookmarks based on semantic vector embeddings
-* [TODO] add REQUIRED fields (with validation) for both Bookmark and Folder
-
-
-## Usage
-
-Command line, from project directory:
-```bash
-$ python main.py
-```
-
-## Data structure
-json object:
 ```json
 {
   "checksum": "string",
-  "roots": "contains Bookmarks Bar, Other Bookmarks, Mobile Bookmarks",
-  "sync_metadata": "very long alphanumeric plus `+` and `/`"
+  "roots": {
+    "bookmark_bar": { ... },
+    "other": { ... },
+    "mobile": { ... }
+  },
+  "sync_metadata": "string",
   "version": 1
 }
 ```
 
-As part of the project I'd like to figure out the mechanism behind `sync_metadata`. Perhaps it's similar to `rsync`.
-
-The json object is a tree of objects:
+Each bookmark or folder object contains:
 ```json
 {
-  "date_added": "unix-like format",
-  "date_last_used": "unix-like format",
-  "date_modified": "unix-like format",
+  "date_added": "unix-like timestamp",
+  "date_last_used": "unix-like timestamp",
+  "date_modified": "unix-like timestamp",
   "guid": "GUID",
   "id": "integer",
-  "name": "Name given by user in Chrome UI",
-  "type": "folder/url/..."
+  "name": "string",
+  "type": "folder|url",
+  "url": "string (for bookmarks only)",
+  "children": [] (for folders only)
 }
-
 ```
-### Data constraints
-* TODO: add analysis of `bookmark_obj`, `url_obj`, `folder_obj` structure
-* Folders can be empty, in which case a `folder_obj` exists with `children = []`, an empty array. (Tested by bookmarking website to new folder, subsequently removing from folder using Manager.)
-  
 
-## Code
-* `load_data()` -> `traverse_bookmarks_bar()` -> `process_obj`
+## Development
 
+### Project Structure
+```
+chrome-bookmarks/
+├── app/
+│   ├── __init__.py
+│   ├── api.py           # FastAPI routes
+│   ├── bookmarks_data.py # Core bookmark handling
+│   ├── cli.py           # Command-line interface
+│   ├── config.py        # Configuration
+│   ├── main.py          # Application entry
+│   ├── models.py        # Data models
+│   └── test/            # Test directory
+├── data/                # Working directory for bookmark data
+├── init.sh             # Initialization script
+├── README.md
+└── requirements.txt    # Python dependencies
+```
 
-## 'Design' Notes
-* Data size: a reasonable estimate would be max. ~1000s of bookmarks, so we can we quite inefficient if it improves our code, design, or user experience.
-* Network: all is run locally so there are no network considerations.
-* Project involves parsing URLs, obviously. We not to pursue any URL validation (as of this writing), because:
-  * Bookmarks are inherently very likely a valid URL format;
-  * The impact of an invalid URL should be very low as we're just doing specific reporting and processing tasks;
-  * URL validation is notoriously hard, so the cost-benefit trade-off is to limit time spent.
-* Proper use case for Python's built-in `hash`: we only need unique identifiablity for URLs within one runtime session, it runs quickly and we don't need cryptographic security, or multi-session consistency.
-* Given: 
-  1) size of raw data is very limited and upper-bounded;
-  2) information retrieval will be central to many use cases;
-  3) a great user experience will require as rapid as possible retrieval;
-  4) therefore we should heavily prioritize retrieval speed and general convenience, at the expense of "storage efficiency". In normal English: **likely let's build a bunch of indices/hash tables**. 
-* Python version choice: since `list[MyClass]` is only supported starting Python 3.9, I assume that version or later and will configure `ci.yml` accordingly.
-  * Will likely also adopt >=Python3.9 for all personal projects.
-* **December, 1 change**: will focus on script functionality instead of web app/API. I need to test all bookmarks for broken URLs/404, which is very straightforward as scripted functionality. Since audience is devs/tech-savvy anyway, they can easily run a script if the output if well formatted.
+### Adding New Features
 
-## Functionality
-* :white_check_mark: can preview the first `n` characters from your bookmarks file.
-* sort by date_added so you can see oldest/newest
-* sort by date_last_used so you can prioritize for deletion
-* 
+1. **New Data Operations**
+   - Add methods to `BookmarkStore` in `bookmarks_data.py`
+   - Update models in `models.py` if needed
 
+2. **New API Endpoints**
+   - Add routes to `api.py`
+   - Define response models in `models.py`
 
-## TODO
-* check for dead links
-* filter by last_visited
-* Find where `date_last_used = 0`
-* process data: create flat list of: (name, url, url_components)
-* (print tree-like structure of menus and number of leaves)
-* list all pdf bookmarks
-* detect duplicate/similar URLs
-  * detect identical host names e.g. mydomain.com
-* detect bookmark "kind":
-  * article, job post, video, news, document, communications, social media, ...
-* Object Oriented: implement classes and interfaces
-* User story: a user can add metadata (e.g. notes or labels) to a bookmark, folder, or multiple simultaneously.
-* User story: user can execute a filter against all, or a subset of, URLs: e.g. "find broken links".
-* User story: user can easily compare folder locations of duplicate or similar URLs, and edit/delete/move accordingly.
+3. **New CLI Commands**
+   - Add subcommands to `cli.py`
+   - Reuse `BookmarkStore` methods
 
+### Technical Notes
+- Python 3.9+ required for type hints
+- Focus on maintainability and clean code
+- Local-only operation for privacy
+- No external service dependencies
+- Efficient in-memory processing
 
+## Contributing
 
-### Dev notes latest status:
-* Fix data flow between functions: `traverse_bookmark_bar` should return some kind of "traversal result" object, perhaps a list or folderObj's, urlObj's. And `process_*` functions should be renamed and refactored to contribute parts of the "traversal result". 
-* Traversal will have as a side effect a few data structures that are built during traversal, perhaps e.g. duplicate bookmarks.
-* Then, the Traversal Result can be used to do analysis.
-* Important design question is how and why to do data parsing.
-* Design IDEA: the user experience should be perhaps locally hosted and look like Chrome bookmarks UI, except with extra features.
-* NOTE: each bookmark contains the fields `date_added` and `date_last_used`; the latter can be `0`. This has implications for analysis, including the ability to determine which have never been used after creation. (There seems to be no record of each usage timestamp, so we cannot analyze frequencies etc.)
+This is a personal project, but suggestions and improvements are welcome:
 
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## Research
-In researching this project, I found `sync` metadata within the `json` file, and there's a useful resource describing the architecure behind it:
-[Chrome Sync's Model API](https://www.chromium.org/developers/design-documents/sync/model-api/). That document links to the source code behind [Chromium's Bookmark Manager](https://chromium.googlesource.com/chromium/src/+/master/chrome/browser/resources/bookmarks/), which will be useful for:
-* backend architecture changes and optimization,
-* front end user experience ideas,
-* some sense of how Google plans and documents products and features.
+## License
+
+MIT License - see LICENSE file for details
+
+## Research & References
+
+- [Chrome Sync's Model API](https://www.chromium.org/developers/design-documents/sync/model-api/)
+- [Chromium's Bookmark Manager](https://chromium.googlesource.com/chromium/src/+/master/chrome/browser/resources/bookmarks/)
 

@@ -1,30 +1,43 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 import uvicorn
 from app.config import logger
 from app import api
-from app import analysis
+from app.bookmarks_data import BookmarkStore
+import os
 
-app = FastAPI()
+# Chrome bookmarks file location
+CHROME_PROFILE_NAME = os.getenv("CHROME_PROFILE_NAME", "Profile 1")
+CHROME_BOOKMARKS_FILE = os.path.expanduser(
+    f"~/Library/Application Support/Google/Chrome/{CHROME_PROFILE_NAME}/Bookmarks"
+)
+
+app = FastAPI(title="Chrome Bookmarks Manager")
 app.include_router(api.router)
+
+# Create a single BookmarkStore instance
+bookmark_store = BookmarkStore(CHROME_BOOKMARKS_FILE)
+
+# Override the dependency to use our instance
+app.dependency_overrides[api.get_bookmark_store] = lambda: bookmark_store
 
 
 @app.on_event("startup")
-def startup_event():
-    logger.info("Main.py: Starting application...")
-
+async def startup_event():
+    """Initialize the application on startup."""
+    logger.info("Starting application...")
     try:
-        analysis.load_and_preprocess_data()
-        logger.info("Main.py: Bookmarks data loaded...")
+        # Load bookmarks data
+        bookmark_store.load_data()
+        logger.info("Bookmarks data loaded successfully")
     except Exception as e:
-        logger.error(
-            f"Main.py: An error occurred while loading and preprocessing data: {e}"
-        )
+        logger.error(f"Failed to load bookmarks data: {e}")
+        # Don't raise here - let the health endpoint handle reporting the error
 
 
-#
 @app.on_event("shutdown")
-def shutdown_event():
-    logger.info("Main.py: Shutting down application...")
+async def shutdown_event():
+    """Clean up on application shutdown."""
+    logger.info("Shutting down application...")
 
 
 if __name__ == "__main__":
