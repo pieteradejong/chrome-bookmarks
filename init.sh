@@ -1,58 +1,96 @@
 #!/bin/bash
+set -e
 
 # Colors for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+green='\033[0;32m'
+red='\033[0;31m'
+reset='\033[0m'
 
-echo -e "${GREEN}Initializing Chrome Bookmarks Manager...${NC}"
+# Function to check Python version
+check_python_version() {
+    local min_version="3.12.0"
+    if ! command -v python3.12 &> /dev/null; then
+        echo -e "${red}❌ Python 3.12 is not installed. Please install it first.${reset}"
+        echo -e "You can install it using:"
+        echo -e "  - macOS: brew install python@3.12"
+        echo -e "  - Linux: Use your distribution's package manager"
+        exit 1
+    fi
+    
+    local current_version=$(python3.12 -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
+    if [ "$(printf '%s\n' "$min_version" "$current_version" | sort -V | head -n1)" != "$min_version" ]; then
+        echo -e "${red}❌ Python version 3.12 or higher is required. Current version: $current_version${reset}"
+        exit 1
+    fi
+    echo -e "${green}✅ Python version $current_version is compatible${reset}"
+}
 
-# Check if Python 3 is installed
-if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}Python 3 is required but not installed. Please install Python 3 first.${NC}"
-    exit 1
-fi
+# Check Python version first
+check_python_version
 
-# Create virtual environment if it doesn't exist
-if [ ! -d "env" ]; then
-    echo -e "${YELLOW}Creating virtual environment...${NC}"
-    python3 -m venv env
-    echo -e "${GREEN}Virtual environment created.${NC}"
-fi
+# Remove Python virtual environment if it exists
+echo -e "${green}🧹 Removing existing Python virtual environment (venv/) ...${reset}"
+rm -rf venv
+
+# Create new Python virtual environment with explicit Python version
+echo -e "${green}🐍 Creating new Python virtual environment with Python 3.12 ...${reset}"
+python3.12 -m venv venv
 
 # Activate virtual environment
-echo -e "${YELLOW}Activating virtual environment...${NC}"
-source env/bin/activate
+source venv/bin/activate
 
-# Install/upgrade pip and requirements
-echo -e "${YELLOW}Upgrading pip and installing requirements...${NC}"
-pip install --upgrade pip
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
-fi
-
-# Create data directory if it doesn't exist
-mkdir -p data
-
-# Chrome bookmarks file location
-CHROME_BOOKMARKS="$HOME/Library/Application Support/Google/Chrome/Profile 1/Bookmarks"
-WORKING_BOOKMARKS="data/bookmarks.json"
-
-# Check if Chrome bookmarks file exists
-if [ ! -f "$CHROME_BOOKMARKS" ]; then
-    echo -e "${RED}Chrome bookmarks file not found at: $CHROME_BOOKMARKS${NC}"
-    echo -e "${YELLOW}Please ensure Chrome is installed and you have bookmarks.${NC}"
-    echo -e "${YELLOW}You can find your profile path by visiting chrome://version in Chrome and looking for 'Profile Path'${NC}"
+# Verify Python version in virtual environment
+venv_python_version=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
+if [[ ! "$venv_python_version" =~ ^3\.12\. ]]; then
+    echo -e "${red}❌ Virtual environment Python version mismatch. Expected Python 3.12.x, got $venv_python_version${reset}"
     exit 1
 fi
+echo -e "${green}✅ Using Python $venv_python_version in virtual environment${reset}"
 
-# Copy Chrome bookmarks to working directory
-echo -e "${YELLOW}Copying Chrome bookmarks to working directory...${NC}"
-cp "$CHROME_BOOKMARKS" "$WORKING_BOOKMARKS"
-echo -e "${GREEN}Bookmarks copied to: $WORKING_BOOKMARKS${NC}"
+# Remove Python caches
+echo -e "${green}🧹 Removing all __pycache__, .pytest_cache, and .ruff_cache directories ...${reset}"
+find . -type d -name "__pycache__" -exec rm -rf {} +
+rm -rf .pytest_cache .ruff_cache
 
-echo -e "${GREEN}Initialization complete!${NC}"
-echo -e "${YELLOW}Next steps:${NC}"
-echo "1. Activate the virtual environment: source env/bin/activate"
-echo "2. Start developing the CLI tool in src/cli/" 
+# Install Python dependencies
+echo -e "${green}📦 Installing Python dependencies ...${reset}"
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+
+# Frontend setup: auto-create Vite React app if missing
+if [ ! -d "frontend" ]; then
+    echo -e "${green}⚡ Creating frontend/ with Vite + React ...${reset}"
+    npm create vite@latest frontend -- --template react --force
+fi
+
+if [ -d "frontend" ]; then
+    echo -e "${green}🧹 Cleaning frontend node_modules, dist, .vite, and caches ...${reset}"
+    rm -rf frontend/node_modules frontend/dist frontend/.vite frontend/.cache frontend/.eslintcache
+
+    echo -e "${green}📦 Installing frontend dependencies ...${reset}"
+    cd frontend
+    npm install
+    # Build or start frontend
+    if grep -q '"build"' package.json; then
+        echo -e "${green}🏗️  Building frontend ...${reset}"
+        npm run build
+    elif grep -q '"dev"' package.json; then
+        echo -e "${green}🚀 Starting frontend dev server ...${reset}"
+        npm run dev &
+    else
+        echo -e "${red}No build or dev script found in frontend/package.json. Skipping frontend start.${reset}"
+    fi
+    cd ..
+fi
+
+echo
+if [ -d "frontend" ]; then
+    echo -e "${green}✅ Initialization complete!${reset}"
+    echo -e "${green}To activate the Python virtual environment: 'source venv/bin/activate'${reset}"
+    echo -e "${green}To run the backend: './run.sh'${reset}"
+    echo -e "${green}If the frontend dev server is running, visit: http://localhost:5173${reset}"
+else
+    echo -e "${green}✅ Initialization complete!${reset}"
+    echo -e "${green}To activate the Python virtual environment: 'source venv/bin/activate'${reset}"
+    echo -e "${green}To run the backend: './run.sh'${reset}"
+fi

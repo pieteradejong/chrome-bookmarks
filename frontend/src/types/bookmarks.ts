@@ -33,22 +33,33 @@ export interface BookmarkDetails {
   dnsResolved?: boolean;
 }
 
-export enum ErrorCategory {
-  DNS_FAILURE = "DNS Failure",
-  SSL_ERROR = "SSL Error",
-  AUTH_REQUIRED = "Authentication Required",
-  NOT_FOUND = "Not Found",
-  SERVER_ERROR = "Server Error",
-  TIMEOUT = "Timeout",
-  CONNECTION_ERROR = "Connection Error",
-  OTHER = "Other"
+export const ErrorCategory = {
+  DNS_FAILURE: "DNS Failure",
+  SSL_ERROR: "SSL Error",
+  AUTH_REQUIRED: "Authentication Required",
+  NOT_FOUND: "Not Found",
+  SERVER_ERROR: "Server Error",
+  TIMEOUT: "Timeout",
+  CONNECTION_ERROR: "Connection Error",
+  OTHER: "Other"
+} as const;
+
+export type ErrorCategory = typeof ErrorCategory[keyof typeof ErrorCategory];
+
+export interface TechnicalDetails {
+  dnsError?: string;
+  sslError?: string;
+  responseHeaders?: Record<string, string>;
+  redirectChain?: string[];
+  connectionError?: string;
+  timeout?: number;
 }
 
 export interface ErrorDetails {
   category: ErrorCategory;
   message: string;
   statusCode?: number;
-  technicalDetails?: Record<string, any>;
+  technicalDetails?: TechnicalDetails;
 }
 
 export interface BrokenBookmark {

@@ -1,9 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import Dict, List, Optional
 import logging
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.memory import InMemoryBackend
-from fastapi_cache.decorator import cache
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 
@@ -15,14 +12,10 @@ from app.models import (
     BookmarkStats
 )
 from app.bookmarks_data import BookmarkStore, ErrorDetails
-from app.config import logger, get_bookmark_store
+from app.config import logger
+from app.cache import cache
 
 router = APIRouter()
-
-# Cache configuration
-@router.on_event("startup")
-async def startup():
-    FastAPICache.init(InMemoryBackend(), prefix="bookmarks-cache:")
 
 # Dependency to get the BookmarkStore instance
 def get_bookmark_store(store: BookmarkStore = Depends(lambda: BookmarkStore)) -> BookmarkStore:
@@ -118,7 +111,6 @@ async def stats(store: BookmarkStore = Depends(get_bookmark_store)):
 @router.get(
     "/broken", response_model=BrokenBookmarksResponse, status_code=status.HTTP_200_OK
 )
-@cache(expire=7 * 24 * 3600)  # Cache for 7 days
 async def broken_bookmarks(
     include_details: bool = Query(False, description="Include detailed URL check information"),
     store: BookmarkStore = Depends(get_bookmark_store)
@@ -126,11 +118,25 @@ async def broken_bookmarks(
     """Get a list of broken bookmarks."""
     try:
         logger.info("Received broken bookmarks request")
+        
+        # Try to get from cache first
+        cache_key = f"broken_bookmarks:{include_details}"
+        cached_result = await cache.get(cache_key)
+        if cached_result:
+            logger.info("Returning cached broken bookmarks")
+            return BrokenBookmarksResponse(**cached_result)
+        
+        # If not in cache, get fresh data
         broken_bookmarks = await store.get_broken_bookmarks(include_details=include_details)
-        return BrokenBookmarksResponse(
+        result = BrokenBookmarksResponse(
             status="success",
             result=[{"bookmark": b, "error": e, "details": d} for b, e, d in broken_bookmarks]
         )
+        
+        # Cache the result
+        await cache.set(cache_key, result.dict())
+        return result
+        
     except Exception as e:
         logger.error(f"Error retrieving broken bookmarks: {e}")
         raise HTTPException(
@@ -183,16 +189,15 @@ async def delete_bookmark(title: str, store: BookmarkStore = Depends(get_bookmar
 
 
 @router.get("/broken/cache", response_model=dict)
-async def get_broken_bookmarks_cache_stats(
-    bookmark_store: BookmarkStore = Depends(get_bookmark_store)
-) -> dict:
+async def get_broken_bookmarks_cache_stats() -> dict:
     """Get statistics about the broken bookmarks cache."""
-    return bookmark_store.get_cache_stats()
+    return await cache.get_stats()
+
 
 @router.post("/broken/cache/clear", response_model=dict)
-async def clear_broken_bookmarks_cache(
-    bookmark_store: BookmarkStore = Depends(get_bookmark_store)
-) -> dict:
+async def clear_broken_bookmarks_cache() -> dict:
     """Clear the broken bookmarks cache."""
-    bookmark_store.clear_url_cache()
-    return {"status": "success", "message": "Cache cleared successfully"}
+    success = await cache.clear()
+    if success:
+        return {"status": "success", "message": "Cache cleared successfully"}
+    return {"status": "error", "message": "Failed to clear cache"}
