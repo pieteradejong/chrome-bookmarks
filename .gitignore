@@ -161,3 +161,6 @@ cython_debug/
 
 # Bookmark data files
 data/bookmarks*.json
+
+# Local TODO tracking
+TODO.md

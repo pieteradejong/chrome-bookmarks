@@ -4,8 +4,10 @@ export interface Bookmark {
   url?: string;
   type: 'url' | 'folder';
   dateAdded?: number;
-  lastVisited?: number;
+  dateLastUsed?: number;
   children?: Bookmark[];
+  ageDisplay?: string;
+  domain?: string;
 }
 
 export interface BookmarksResponse {

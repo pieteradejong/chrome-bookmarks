@@ -46,12 +46,28 @@ export interface CacheResponse {
 }
 
 export const getCacheStats = async (): Promise<CacheStats> => {
-  const response = await fetch('/api/broken/cache');
-  if (!response.ok) {
-    throw new Error('Failed to fetch cache stats');
+  try {
+    const response = await fetch('/api/broken/cache');
+    if (!response.ok) {
+      throw new Error('Failed to fetch cache stats');
+    }
+    const data: CacheResponse = await response.json();
+    // Always return a value, never undefined
+    return data.result ?? {
+      total_cached: 0,
+      valid_entries: 0,
+      expired_entries: 0,
+      cache_expiry_days: 7,
+    };
+  } catch (error) {
+    // Return a default value on error
+    return {
+      total_cached: 0,
+      valid_entries: 0,
+      expired_entries: 0,
+      cache_expiry_days: 7,
+    };
   }
-  const data: CacheResponse = await response.json();
-  return data.result;
 };
 
 export const clearCache = async (): Promise<void> => {

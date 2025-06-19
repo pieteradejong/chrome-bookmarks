@@ -377,3 +377,19 @@ MIT License - see LICENSE file for details
 - [Chrome Sync's Model API](https://www.chromium.org/developers/design-documents/sync/model-api/)
 - [Chromium's Bookmark Manager](https://chromium.googlesource.com/chromium/src/+/master/chrome/browser/resources/bookmarks/)
 
+## Ensure SQLite Cache Directory and Permissions
+
+Before running the backend, make sure the `data/` directory exists and has the correct permissions for SQLite to create and write the cache database:
+
+```bash
+mkdir -p data
+chmod u+rw data
+chmod u+rw data/bookmarks_cache.db  # Only if the file already exists
+```
+
+If you encounter database errors, you may need to delete the cache file and let the app recreate it:
+
+```bash
+rm data/bookmarks_cache.db
+```
+

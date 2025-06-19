@@ -15,6 +15,11 @@ import re
 
 from app.models import URL, Bookmark, Folder, BookmarkResponse, BookmarkStats
 from app.config import logger
+from app.config import CACHE_FRESHNESS_HOURS
+from app.sqlite_cache import sqlite_cache, BookmarkCacheEntry
+
+PURPLE = "\033[95m"
+RESET = "\033[0m"
 
 class ErrorCategory(Enum):
     DNS_FAILURE = "DNS Failure"
@@ -67,6 +72,12 @@ def categorize_error(error: str, status_code: Optional[int] = None) -> ErrorDeta
     # Other errors
     return ErrorDetails(ErrorCategory.OTHER, error, status_code)
 
+def error_details_to_dict(error_details):
+    d = error_details._asdict() if hasattr(error_details, '_asdict') else dict(error_details)
+    if isinstance(d.get('category'), Enum):
+        d['category'] = d['category'].value
+    return d
+
 class BookmarkStore:
     def __init__(self, bookmarks_file_path: str):
         self.bookmarks_file_path = bookmarks_file_path
@@ -83,7 +94,8 @@ class BookmarkStore:
         return datetime.now() - cache_time < self._url_cache_expiry
 
     def load_data(self) -> bool:
-        """Load and preprocess the bookmarks data."""
+        if self._loaded:
+            return True
         try:
             with open(self.bookmarks_file_path, "r") as file:
                 self._bookmarks_json = json.load(file)
@@ -180,7 +192,6 @@ class BookmarkStore:
         _traverse(root)
 
     def get_bookmark_tree(self) -> Optional[Dict]:
-        """Return the complete bookmark tree structure."""
         if not self._loaded:
             self.load_data()
         
@@ -197,7 +208,6 @@ class BookmarkStore:
         return bookmark_bar
 
     def get_unvisited_bookmarks(self) -> List[BookmarkResponse]:
-        """Return a list of unvisited bookmarks."""
         if not self._loaded:
             self.load_data()
 
@@ -210,12 +220,13 @@ class BookmarkStore:
                     url=bookmark.url.full if bookmark.url else None,
                     type="url",
                     date_added=bookmark.date_added,
-                    date_last_used=bookmark.date_last_used
+                    date_last_used=bookmark.date_last_used,
+                    age_display=self.chrome_time_to_age_display(bookmark.date_added),
+                    domain=self.extract_domain(bookmark.url.full) if bookmark.url else None
                 ))
         return unvisited
 
     def get_stats(self) -> BookmarkStats:
-        """Get bookmark statistics."""
         if not self._loaded:
             self.load_data()
 
@@ -249,17 +260,56 @@ class BookmarkStore:
     @staticmethod
     def chrome_time_to_datetime(timevalue: int) -> datetime:
         """Convert Chrome timestamp to datetime."""
-        epoch = -11644473600000
-        return datetime(1601, 1, 1) + timedelta(milliseconds=epoch + timevalue / 1000)
+        # Chrome timestamps are microseconds since January 1, 1601 UTC
+        epoch_start = datetime(1601, 1, 1)
+        return epoch_start + timedelta(microseconds=timevalue)
 
     @staticmethod
     def chrome_time_to_str(timevalue: int) -> str:
         """Convert Chrome timestamp to string representation."""
         return BookmarkStore.chrome_time_to_datetime(timevalue).strftime("%Y-%m-%d %H:%M:%S")
 
+    @staticmethod
+    def chrome_time_to_age_display(timevalue: int) -> str:
+        """Convert Chrome timestamp to human-readable age (e.g., '3 days ago', '2 months ago')."""
+        if timevalue == 0:
+            return "Never"
+        
+        bookmark_date = BookmarkStore.chrome_time_to_datetime(timevalue)
+        now = datetime.now()
+        delta = now - bookmark_date
+        
+        days = delta.days
+        
+        if days == 0:
+            return "Today"
+        elif days == 1:
+            return "Yesterday"
+        elif days < 7:
+            return f"{days} days ago"
+        elif days < 30:
+            weeks = days // 7
+            return f"{weeks} week{'s' if weeks > 1 else ''} ago"
+        elif days < 365:
+            months = days // 30
+            return f"{months} month{'s' if months > 1 else ''} ago"
+        else:
+            years = days // 365
+            return f"{years} year{'s' if years > 1 else ''} ago"
+
+    @staticmethod
+    def extract_domain(url: str) -> Optional[str]:
+        """Extract domain from URL."""
+        try:
+            parsed = urlparse(url)
+            return parsed.netloc
+        except Exception:
+            return None
+
     async def _check_url_accessible(self, url: str) -> Tuple[bool, ErrorDetails, Optional[Dict[str, Any]]]:
         """Check if a URL is accessible. Returns (is_accessible, error_details, technical_details)."""
         if not url:
+            logger.warning("⚠️  Empty URL provided to _check_url_accessible.")
             return False, ErrorDetails(ErrorCategory.OTHER, "Empty URL"), None
 
         # Check cache first
@@ -285,7 +335,9 @@ class BookmarkStore:
                 hostname = urlparse(url).netloc
                 socket.gethostbyname(hostname)
                 details["dns_resolved"] = True
+                logger.debug(f"🔗 DNS resolved: {hostname}")
             except socket.gaierror:
+                logger.error(f"❌ DNS resolution failed: {url}")
                 result = (False, ErrorDetails(ErrorCategory.DNS_FAILURE, "DNS resolution failed"), details)
                 self._url_cache[url] = (*result, datetime.now())
                 return result
@@ -298,8 +350,10 @@ class BookmarkStore:
                         with context.wrap_socket(sock, server_hostname=hostname) as ssock:
                             cert = ssock.getpeercert()
                             details["ssl_valid"] = bool(cert)
+                            logger.debug(f"🔒 SSL valid: {url}")
                 except (ssl.SSLError, socket.timeout, ConnectionRefusedError) as e:
                     details["ssl_valid"] = False
+                    logger.error(f"❌ SSL Error: {url} - {str(e)}")
                     result = (False, ErrorDetails(ErrorCategory.SSL_ERROR, f"SSL Error: {str(e)}"), details)
                     self._url_cache[url] = (*result, datetime.now())
                     return result
@@ -319,25 +373,30 @@ class BookmarkStore:
                         details["response_time"] = (datetime.now() - start_time).total_seconds()
                         
                         if response.status < 400:
+                            logger.info(f"✅ HTTP OK: {url} [{response.status}]")
                             result = (True, ErrorDetails(ErrorCategory.OTHER, ""), details)
                             self._url_cache[url] = (*result, datetime.now())
                             return result
                         
                         error_msg = f"HTTP {response.status}: {response.reason}"
+                        logger.error(f"❌ HTTP Error: {url} - {error_msg}")
                         result = (False, categorize_error(error_msg, response.status), details)
                         self._url_cache[url] = (*result, datetime.now())
                         return result
                         
                 except aiohttp.ClientError as e:
+                    logger.error(f"❌ Connection error: {url} - {str(e)}")
                     result = (False, categorize_error(f"Connection error: {str(e)}"), details)
                     self._url_cache[url] = (*result, datetime.now())
                     return result
                 except asyncio.TimeoutError:
+                    logger.error(f"⏰ Timeout: {url}")
                     result = (False, ErrorDetails(ErrorCategory.TIMEOUT, "Connection timeout"), details)
                     self._url_cache[url] = (*result, datetime.now())
                     return result
                     
         except Exception as e:
+            logger.error(f"❌ Error checking URL: {url} - {str(e)}")
             result = (False, categorize_error(f"Error checking URL: {str(e)}"), details)
             self._url_cache[url] = (*result, datetime.now())
             return result
@@ -377,27 +436,74 @@ class BookmarkStore:
         return results
 
     async def get_broken_bookmarks(self, include_details: bool = False) -> List[Tuple[BookmarkResponse, ErrorDetails, Optional[Dict[str, Any]]]]:
-        """Get a list of broken bookmarks with categorized error messages and optional details."""
+        """Get a list of broken bookmarks with categorized error messages and optional details, using SQLite cache to minimize network requests."""
         if not self._loaded:
             self.load_data()
 
-        # Collect all URLs first
-        urls_to_check = []
-        bookmark_map = {}
-        for bookmark in self._bookmarks:
-            if bookmark.url:
-                urls_to_check.append(bookmark.url.full)
-                bookmark_map[bookmark.url.full] = bookmark
+        logger.info("\n🔎 Checking for broken bookmarks...")
+        def is_cache_fresh(entry, max_age_hours=CACHE_FRESHNESS_HOURS):
+            if not entry or not entry.last_checked:
+                return False
+            last_checked = datetime.fromisoformat(entry.last_checked)
+            return datetime.utcnow() - last_checked < timedelta(hours=max_age_hours)
 
-        # Check URLs in batches
-        results = await self._check_urls_batch(urls_to_check)
-        
-        # Process results
-        broken_bookmarks = []
-        for url, is_accessible, error_details, details in results:
-            if not is_accessible and url in bookmark_map:
-                bookmark = bookmark_map[url]
-                broken_bookmarks.append((
+        bookmarks_to_check = [b for b in self._bookmarks if b.url]
+        total = len(bookmarks_to_check)
+        cache_hits = 0
+        cache_misses = 0
+        network_checks = 0
+        broken_count = 0
+        completed = 0
+        broken_ids = set()
+
+        async def check_bookmark(bookmark):
+            nonlocal cache_hits, cache_misses, network_checks, broken_count, completed
+            cache_entry = sqlite_cache.get(bookmark.id)
+            if is_cache_fresh(cache_entry):
+                cache_hits += 1
+                completed += 1
+                if cache_entry.broken_status == "broken":
+                    broken_count += 1
+                    broken_ids.add(bookmark.id)
+                    logger.info(f"💾 [CACHE] Broken: {bookmark.name} ({bookmark.url.full}) - {cache_entry.error_details.get('message', '') if cache_entry.error_details else ''}")
+                    return (
+                        BookmarkResponse(
+                            id=bookmark.id,
+                            name=bookmark.name,
+                            url=bookmark.url.full,
+                            type="url",
+                            date_added=bookmark.date_added,
+                            date_last_used=bookmark.date_last_used
+                        ),
+                        cache_entry.error_details,
+                        cache_entry.error_details if include_details else None
+                    )
+                else:
+                    logger.info(f"💾 [CACHE] OK: {bookmark.name} ({bookmark.url.full})")
+                    return None
+            # Otherwise, perform network check
+            cache_misses += 1
+            logger.info(f"🌐 [NET] Checking: {bookmark.name} ({bookmark.url.full}) ...")
+            is_accessible, error_details, details = await self._check_url_accessible(bookmark.url.full)
+            now = datetime.utcnow().isoformat()
+            broken_status = "broken" if not is_accessible else "ok"
+            entry = BookmarkCacheEntry(
+                id=bookmark.id,
+                url=bookmark.url.full,
+                name=bookmark.name,
+                last_checked=now,
+                broken_status=broken_status,
+                error_details=error_details_to_dict(error_details)
+            )
+            sqlite_cache.upsert(entry)
+            print(f"{PURPLE}💾 [DB] Saved: {bookmark.name} ({bookmark.url.full}) as {broken_status}{RESET}")
+            network_checks += 1
+            completed += 1
+            if not is_accessible:
+                broken_count += 1
+                broken_ids.add(bookmark.id)
+                logger.info(f"❌ [NET] Broken: {bookmark.name} ({bookmark.url.full}) - {error_details.message}")
+                return (
                     BookmarkResponse(
                         id=bookmark.id,
                         name=bookmark.name,
@@ -406,14 +512,24 @@ class BookmarkStore:
                         date_added=bookmark.date_added,
                         date_last_used=bookmark.date_last_used
                     ),
-                    error_details,
+                    error_details_to_dict(error_details),
                     details if include_details else None
-                ))
-                
+                )
+            else:
+                logger.info(f"✅ [NET] OK: {bookmark.name} ({bookmark.url.full})")
+            return None
+
+        results = []
+        for idx, b in enumerate(bookmarks_to_check):
+            result = await check_bookmark(b)
+            results.append(result)
+            if (idx + 1) % 10 == 0 or (idx + 1) == total:
+                logger.info(f"📊 Progress: {idx + 1}/{total} | Broken: {broken_count} | Cache hits: {cache_hits} | Misses: {cache_misses} | Network: {network_checks}")
+        broken_bookmarks = [r for r in results if r is not None]
+        logger.info(f"\n📊 Broken bookmarks summary: {broken_count} broken, {cache_hits} cache hits, {cache_misses} cache misses, {network_checks} network checks, {total} total.")
         return broken_bookmarks
 
     def get_bookmark_analysis(self) -> Dict[str, Any]:
-        """Get detailed analysis of bookmarks."""
         if not self._loaded:
             self.load_data()
 
@@ -485,7 +601,6 @@ class BookmarkStore:
         return analysis
 
     def delete_bookmark_by_title(self, title: str) -> bool:
-        """Delete a bookmark by its title. Returns True if deleted, False if not found."""
         if not self._loaded:
             self.load_data()
 

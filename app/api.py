@@ -13,7 +13,7 @@ from app.models import (
 )
 from app.bookmarks_data import BookmarkStore, ErrorDetails
 from app.config import logger
-from app.cache import cache
+from app.sqlite_cache import sqlite_cache
 
 router = APIRouter()
 
@@ -111,38 +111,25 @@ async def stats(store: BookmarkStore = Depends(get_bookmark_store)):
 @router.get(
     "/broken", response_model=BrokenBookmarksResponse, status_code=status.HTTP_200_OK
 )
-async def broken_bookmarks(
-    include_details: bool = Query(False, description="Include detailed URL check information"),
-    store: BookmarkStore = Depends(get_bookmark_store)
-):
-    """Get a list of broken bookmarks."""
-    try:
-        logger.info("Received broken bookmarks request")
-        
-        # Try to get from cache first
-        cache_key = f"broken_bookmarks:{include_details}"
-        cached_result = await cache.get(cache_key)
-        if cached_result:
-            logger.info("Returning cached broken bookmarks")
-            return BrokenBookmarksResponse(**cached_result)
-        
-        # If not in cache, get fresh data
-        broken_bookmarks = await store.get_broken_bookmarks(include_details=include_details)
-        result = BrokenBookmarksResponse(
-            status="success",
-            result=[{"bookmark": b, "error": e, "details": d} for b, e, d in broken_bookmarks]
-        )
-        
-        # Cache the result
-        await cache.set(cache_key, result.dict())
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error retrieving broken bookmarks: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+async def broken_bookmarks():
+    """Get a list of broken bookmarks from the cache only (no network checks)."""
+    entries = sqlite_cache.get_all()
+    broken = [
+        {
+            "bookmark": {
+                "id": entry.id,
+                "name": entry.name,
+                "url": entry.url,
+                "type": "url",
+                "date_added": None,
+                "date_last_used": None,
+            },
+            "error": entry.error_details["message"] if isinstance(entry.error_details, dict) and "message" in entry.error_details else str(entry.error_details),
+            "details": entry.error_details if entry.broken_status == "broken" else None,
+        }
+        for entry in entries if entry.broken_status == "broken"
+    ]
+    return {"status": "success", "result": broken}
 
 
 @router.get(
@@ -191,13 +178,25 @@ async def delete_bookmark(title: str, store: BookmarkStore = Depends(get_bookmar
 @router.get("/broken/cache", response_model=dict)
 async def get_broken_bookmarks_cache_stats() -> dict:
     """Get statistics about the broken bookmarks cache."""
-    return await cache.get_stats()
+    # Get basic stats from SQLite cache
+    entries = sqlite_cache.get_all()
+    total_entries = len(entries)
+    broken_entries = len([e for e in entries if e.broken_status == "broken"])
+    ok_entries = len([e for e in entries if e.broken_status == "ok"])
+    
+    return {
+        "total_entries": total_entries,
+        "broken_entries": broken_entries,
+        "ok_entries": ok_entries,
+        "cache_type": "sqlite"
+    }
 
 
 @router.post("/broken/cache/clear", response_model=dict)
 async def clear_broken_bookmarks_cache() -> dict:
     """Clear the broken bookmarks cache."""
-    success = await cache.clear()
-    if success:
+    try:
+        sqlite_cache.clear()
         return {"status": "success", "message": "Cache cleared successfully"}
-    return {"status": "error", "message": "Failed to clear cache"}
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to clear cache: {str(e)}"}

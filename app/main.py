@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, HTTPException
 import uvicorn
+from fastapi.responses import JSONResponse
 from app.config import logger
 from app import api
 from app.bookmarks_data import BookmarkStore
-from app.cache import cache
 import os
+from app.models import APIError
 
 # Chrome bookmarks file location
 CHROME_PROFILE_NAME = os.getenv("CHROME_PROFILE_NAME", "Profile 1")
@@ -17,37 +18,21 @@ app.include_router(api.router)
 
 # Create a single BookmarkStore instance
 bookmark_store = BookmarkStore(CHROME_BOOKMARKS_FILE)
+bookmark_store.load_data()  # Load once at startup
 
 # Override the dependency to use our instance
 app.dependency_overrides[api.get_bookmark_store] = lambda: bookmark_store
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the application on startup."""
-    logger.info("Starting application...")
-    try:
-        # Connect to Redis
-        await cache.connect()
-        logger.info("Redis connection established")
-        
-        # Load bookmarks data
-        bookmark_store.load_data()
-        logger.info("Bookmarks data loaded successfully")
-    except Exception as e:
-        logger.error(f"Failed to start application: {e}")
-        # Don't raise here - let the health endpoint handle reporting the error
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    error = APIError(detail=exc.detail, code=getattr(exc, "code", None))
+    return JSONResponse(status_code=exc.status_code, content=error.dict())
 
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean up resources on shutdown."""
-    logger.info("Shutting down application...")
-    try:
-        await cache.disconnect()
-        logger.info("Redis connection closed")
-    except Exception as e:
-        logger.error(f"Error during shutdown: {e}")
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    error = APIError(detail=str(exc), code="internal_error")
+    return JSONResponse(status_code=500, content=error.dict())
 
 
 if __name__ == "__main__":
