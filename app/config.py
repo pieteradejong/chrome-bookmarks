@@ -4,8 +4,8 @@ import os
 
 K_RESULTS = 3
 
-# Cache freshness duration in hours (default: 1 month)
-CACHE_FRESHNESS_HOURS = int(os.getenv("CACHE_FRESHNESS_HOURS", 720))
+# Cache freshness duration in hours (default: 7 days)
+CACHE_FRESHNESS_HOURS = int(os.getenv("CACHE_FRESHNESS_HOURS", 168))
 
 
 def load_logging_config():

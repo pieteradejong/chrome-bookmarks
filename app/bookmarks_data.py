@@ -307,18 +307,42 @@ class BookmarkStore:
             return None
 
     async def _check_url_accessible(self, url: str) -> Tuple[bool, ErrorDetails, Optional[Dict[str, Any]]]:
-        """Check if a URL is accessible. Returns (is_accessible, error_details, technical_details)."""
+        """Check if a URL is accessible using optimized HEAD-first approach with multi-layer caching. Returns (is_accessible, error_details, technical_details)."""
         if not url:
             logger.warning("⚠️  Empty URL provided to _check_url_accessible.")
             return False, ErrorDetails(ErrorCategory.OTHER, "Empty URL"), None
 
-        # Check cache first
+        # Layer 1: Check in-memory cache first (fastest)
         if url in self._url_cache:
             is_accessible, error_details, details, cache_time = self._url_cache[url]
             if self._is_cache_valid(cache_time):
+                logger.debug(f"💾 [MEM] Cache hit: {url}")
                 return is_accessible, error_details, details
             # Cache expired, remove it
             del self._url_cache[url]
+
+        # Layer 2: Check SQLite cache (persistent across restarts)
+        sqlite_entry = sqlite_cache.get_by_url(url)
+        if sqlite_entry and sqlite_entry.last_checked:
+            try:
+                last_checked = datetime.fromisoformat(sqlite_entry.last_checked)
+                if datetime.utcnow() - last_checked < timedelta(hours=CACHE_FRESHNESS_HOURS):
+                    # Cache is fresh, populate in-memory cache and return
+                    is_accessible = sqlite_entry.broken_status != "broken"
+                    error_details = ErrorDetails(
+                        ErrorCategory.OTHER if is_accessible else ErrorCategory.OTHER,
+                        sqlite_entry.error_details.get("message", "") if sqlite_entry.error_details else ""
+                    )
+                    # Reconstruct technical details from cache
+                    technical_details = sqlite_entry.error_details if sqlite_entry.error_details else {}
+                    
+                    # Populate in-memory cache for next time
+                    self._url_cache[url] = (is_accessible, error_details, technical_details, last_checked)
+                    
+                    logger.debug(f"💾 [DB] Cache hit: {url} (checked {last_checked})")
+                    return is_accessible, error_details, technical_details
+            except (ValueError, TypeError) as e:
+                logger.warning(f"⚠️  Invalid cache timestamp for {url}: {e}")
             
         details = {
             "status_code": None,
@@ -326,11 +350,12 @@ class BookmarkStore:
             "response_time": None,
             "final_url": None,
             "ssl_valid": None,
-            "dns_resolved": None
+            "dns_resolved": None,
+            "method_used": None
         }
         
         try:
-            # First check DNS resolution
+            # First check DNS resolution (fastest failure mode)
             try:
                 hostname = urlparse(url).netloc
                 socket.gethostbyname(hostname)
@@ -339,14 +364,17 @@ class BookmarkStore:
             except socket.gaierror:
                 logger.error(f"❌ DNS resolution failed: {url}")
                 result = (False, ErrorDetails(ErrorCategory.DNS_FAILURE, "DNS resolution failed"), details)
+                # Cache in memory
                 self._url_cache[url] = (*result, datetime.now())
+                # Cache in SQLite for persistence
+                self._save_url_to_sqlite_cache(url, False, result[1], details)
                 return result
 
-            # Then check SSL if it's an HTTPS URL
+            # Then check SSL if it's an HTTPS URL (second fastest failure mode)
             if url.startswith("https://"):
                 try:
                     context = ssl.create_default_context()
-                    with socket.create_connection((hostname, 443), timeout=5) as sock:
+                    with socket.create_connection((hostname, 443), timeout=3) as sock:
                         with context.wrap_socket(sock, server_hostname=hostname) as ssock:
                             cert = ssock.getpeercert()
                             details["ssl_valid"] = bool(cert)
@@ -355,15 +383,20 @@ class BookmarkStore:
                     details["ssl_valid"] = False
                     logger.error(f"❌ SSL Error: {url} - {str(e)}")
                     result = (False, ErrorDetails(ErrorCategory.SSL_ERROR, f"SSL Error: {str(e)}"), details)
+                    # Cache in memory
                     self._url_cache[url] = (*result, datetime.now())
+                    # Cache in SQLite for persistence
+                    self._save_url_to_sqlite_cache(url, False, result[1], details)
                     return result
             
+            # Now try HTTP check - HEAD first, then GET fallback
             start_time = datetime.now()
             async with aiohttp.ClientSession() as session:
+                # Try HEAD request first (much faster)
                 try:
-                    async with session.get(
+                    async with session.head(
                         url,
-                        timeout=aiohttp.ClientTimeout(total=10),
+                        timeout=aiohttp.ClientTimeout(total=8),
                         allow_redirects=True,
                         ssl=False  # We already checked SSL separately
                     ) as response:
@@ -371,68 +404,174 @@ class BookmarkStore:
                         details["content_type"] = response.headers.get("content-type")
                         details["final_url"] = str(response.url)
                         details["response_time"] = (datetime.now() - start_time).total_seconds()
+                        details["method_used"] = "HEAD"
                         
                         if response.status < 400:
-                            logger.info(f"✅ HTTP OK: {url} [{response.status}]")
+                            logger.info(f"✅ HEAD OK: {url} [{response.status}] ({details['response_time']:.2f}s)")
                             result = (True, ErrorDetails(ErrorCategory.OTHER, ""), details)
+                            # Cache in memory
                             self._url_cache[url] = (*result, datetime.now())
+                            # Cache in SQLite for persistence
+                            self._save_url_to_sqlite_cache(url, True, result[1], details)
+                            return result
+                        elif response.status == 405:  # Method Not Allowed - try GET
+                            logger.debug(f"🔄 HEAD not supported for {url}, trying GET...")
+                            # Fall through to GET request
+                        else:
+                            error_msg = f"HTTP {response.status}: {response.reason}"
+                            logger.error(f"❌ HEAD Error: {url} - {error_msg}")
+                            result = (False, categorize_error(error_msg, response.status), details)
+                            # Cache in memory
+                            self._url_cache[url] = (*result, datetime.now())
+                            # Cache in SQLite for persistence
+                            self._save_url_to_sqlite_cache(url, False, result[1], details)
+                            return result
+                            
+                except aiohttp.ClientError as e:
+                    logger.debug(f"🔄 HEAD failed for {url}: {str(e)}, trying GET...")
+                    # Fall through to GET request
+                except asyncio.TimeoutError:
+                    logger.error(f"⏰ HEAD Timeout: {url}")
+                    result = (False, ErrorDetails(ErrorCategory.TIMEOUT, "HEAD request timeout"), details)
+                    # Cache in memory
+                    self._url_cache[url] = (*result, datetime.now())
+                    # Cache in SQLite for persistence
+                    self._save_url_to_sqlite_cache(url, False, result[1], details)
+                    return result
+
+                # GET request fallback (only if HEAD failed or returned 405)
+                try:
+                    start_time = datetime.now()  # Reset timer for GET request
+                    async with session.get(
+                        url,
+                        timeout=aiohttp.ClientTimeout(total=10),
+                        allow_redirects=True,
+                        ssl=False  # We already checked SSL separately
+                    ) as response:
+                        # Only read first 1KB to verify it's working (much faster than full download)
+                        await response.content.read(1024)
+                        
+                        details["status_code"] = response.status
+                        details["content_type"] = response.headers.get("content-type")
+                        details["final_url"] = str(response.url)
+                        details["response_time"] = (datetime.now() - start_time).total_seconds()
+                        details["method_used"] = "GET"
+                        
+                        if response.status < 400:
+                            logger.info(f"✅ GET OK: {url} [{response.status}] ({details['response_time']:.2f}s)")
+                            result = (True, ErrorDetails(ErrorCategory.OTHER, ""), details)
+                            # Cache in memory
+                            self._url_cache[url] = (*result, datetime.now())
+                            # Cache in SQLite for persistence
+                            self._save_url_to_sqlite_cache(url, True, result[1], details)
                             return result
                         
                         error_msg = f"HTTP {response.status}: {response.reason}"
-                        logger.error(f"❌ HTTP Error: {url} - {error_msg}")
+                        logger.error(f"❌ GET Error: {url} - {error_msg}")
                         result = (False, categorize_error(error_msg, response.status), details)
+                        # Cache in memory
                         self._url_cache[url] = (*result, datetime.now())
+                        # Cache in SQLite for persistence
+                        self._save_url_to_sqlite_cache(url, False, result[1], details)
                         return result
                         
                 except aiohttp.ClientError as e:
                     logger.error(f"❌ Connection error: {url} - {str(e)}")
                     result = (False, categorize_error(f"Connection error: {str(e)}"), details)
+                    # Cache in memory
                     self._url_cache[url] = (*result, datetime.now())
+                    # Cache in SQLite for persistence
+                    self._save_url_to_sqlite_cache(url, False, result[1], details)
                     return result
                 except asyncio.TimeoutError:
-                    logger.error(f"⏰ Timeout: {url}")
-                    result = (False, ErrorDetails(ErrorCategory.TIMEOUT, "Connection timeout"), details)
+                    logger.error(f"⏰ GET Timeout: {url}")
+                    result = (False, ErrorDetails(ErrorCategory.TIMEOUT, "GET request timeout"), details)
+                    # Cache in memory
                     self._url_cache[url] = (*result, datetime.now())
+                    # Cache in SQLite for persistence
+                    self._save_url_to_sqlite_cache(url, False, result[1], details)
                     return result
                     
         except Exception as e:
             logger.error(f"❌ Error checking URL: {url} - {str(e)}")
             result = (False, categorize_error(f"Error checking URL: {str(e)}"), details)
+            # Cache in memory
             self._url_cache[url] = (*result, datetime.now())
+            # Cache in SQLite for persistence
+            self._save_url_to_sqlite_cache(url, False, result[1], details)
             return result
+
+    def _save_url_to_sqlite_cache(self, url: str, is_accessible: bool, error_details: ErrorDetails, technical_details: Optional[Dict[str, Any]]) -> None:
+        """Save URL check result to SQLite cache for persistence."""
+        try:
+            # Create a cache entry with URL as ID (for URL-level caching)
+            url_hash = str(hash(url))  # Simple hash for ID
+            entry = BookmarkCacheEntry(
+                id=f"url_{url_hash}",
+                url=url,
+                name=None,  # URL-only cache entry
+                last_checked=datetime.utcnow().isoformat(),
+                broken_status="ok" if is_accessible else "broken",
+                error_details={
+                    **error_details_to_dict(error_details),
+                    **(technical_details or {})
+                }
+            )
+            sqlite_cache.upsert(entry)
+            logger.debug(f"💾 [DB] Saved URL cache: {url} as {'ok' if is_accessible else 'broken'}")
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to save URL to SQLite cache: {e}")
 
     def clear_url_cache(self) -> None:
         """Clear the URL check cache."""
         self._url_cache.clear()
 
     def get_cache_stats(self) -> Dict[str, Any]:
-        """Get statistics about the URL cache."""
+        """Get statistics about the URL cache including both memory and SQLite cache."""
         now = datetime.now()
-        valid_entries = sum(1 for _, cache_time in self._url_cache.values() if self._is_cache_valid(cache_time))
+        valid_entries = sum(1 for _, _, _, cache_time in self._url_cache.values() if self._is_cache_valid(cache_time))
         expired_entries = len(self._url_cache) - valid_entries
         
+        # Get SQLite cache stats
+        sqlite_entries = sqlite_cache.get_all()
+        sqlite_url_entries = [e for e in sqlite_entries if e.id.startswith("url_")]
+        
         return {
-            "total_cached": len(self._url_cache),
-            "valid_entries": valid_entries,
-            "expired_entries": expired_entries,
-            "cache_expiry_days": self._url_cache_expiry.days
+            "memory_cache": {
+                "total_cached": len(self._url_cache),
+                "valid_entries": valid_entries,
+                "expired_entries": expired_entries,
+                "cache_expiry_days": self._url_cache_expiry.days
+            },
+            "sqlite_cache": {
+                "total_entries": len(sqlite_entries),
+                "url_entries": len(sqlite_url_entries),
+                "bookmark_entries": len(sqlite_entries) - len(sqlite_url_entries),
+                "broken_entries": len([e for e in sqlite_entries if e.broken_status == "broken"]),
+                "ok_entries": len([e for e in sqlite_entries if e.broken_status == "ok"])
+            }
         }
 
-    async def _check_urls_batch(self, urls: List[str], batch_size: int = 10) -> List[Tuple[str, bool, ErrorDetails, Optional[Dict[str, Any]]]]:
-        """Check a batch of URLs concurrently."""
+    async def _check_urls_batch(self, urls: List[str], batch_size: int = 20) -> List[Tuple[str, bool, ErrorDetails, Optional[Dict[str, Any]]]]:
+        """Check a batch of URLs concurrently with optimized batch size and rate limiting."""
         results = []
-        for i in range(0, len(urls), batch_size):
-            batch = urls[i:i + batch_size]
-            tasks = [self._check_url_accessible(url) for url in batch]
-            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for url, result in zip(batch, batch_results):
-                if isinstance(result, Exception):
-                    results.append((url, False, ErrorDetails(ErrorCategory.OTHER, str(result)), None))
-                else:
-                    is_accessible, error_details, details = result
-                    results.append((url, is_accessible, error_details, details))
-                    
+        semaphore = asyncio.Semaphore(batch_size)  # Rate limiting
+        
+        async def check_with_semaphore(url: str):
+            async with semaphore:
+                return await self._check_url_accessible(url)
+        
+        # Process all URLs concurrently with semaphore limiting
+        tasks = [check_with_semaphore(url) for url in urls]
+        batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for url, result in zip(urls, batch_results):
+            if isinstance(result, Exception):
+                results.append((url, False, ErrorDetails(ErrorCategory.OTHER, str(result)), None))
+            else:
+                is_accessible, error_details, details = result
+                results.append((url, is_accessible, error_details, details))
+                
         return results
 
     async def get_broken_bookmarks(self, include_details: bool = False) -> List[Tuple[BookmarkResponse, ErrorDetails, Optional[Dict[str, Any]]]]:
