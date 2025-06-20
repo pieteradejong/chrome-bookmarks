@@ -2,6 +2,8 @@ import { Card, Text, Group, Badge, Stack } from '@mantine/core';
 import { IconFolder, IconLink } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import type { Bookmark } from '../types/bookmarks';
+import { BookmarkStatusBar } from './BookmarkStatusBar';
+import { useBookmarkStatusContext } from '../contexts/BookmarkStatusContext';
 
 // Convert Chrome timestamp (microseconds since 1601) to JavaScript Date
 function chromeTimeToDate(chromeTimestamp: number): Date {
@@ -18,58 +20,71 @@ interface BookmarkItemProps {
 export function BookmarkItem({ bookmark, onClick }: BookmarkItemProps) {
   const isFolder = bookmark.type === 'folder';
   const Icon = isFolder ? IconFolder : IconLink;
+  const { getStatus, loading } = useBookmarkStatusContext();
+  
+  const status = getStatus(bookmark.id);
 
   return (
     <Card
       shadow="sm"
-      padding="lg"
+      padding={0}
       radius="md"
       withBorder
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer', overflow: 'hidden' }}
       onClick={() => onClick?.(bookmark)}
     >
-      <Group justify="space-between" mb="xs">
-        <Group gap="xs">
-          <Icon size={20} />
-          <Text fw={500}>{bookmark.name}</Text>
+      <div style={{ padding: 'var(--mantine-spacing-lg)' }}>
+        <Group justify="space-between" mb="xs">
+          <Group gap="xs">
+            <Icon size={20} />
+            <Text fw={500}>{bookmark.name}</Text>
+          </Group>
+          <Badge color={isFolder ? 'blue' : 'green'}>
+            {isFolder ? 'Folder' : 'URL'}
+          </Badge>
         </Group>
-        <Badge color={isFolder ? 'blue' : 'green'}>
-          {isFolder ? 'Folder' : 'URL'}
-        </Badge>
-      </Group>
 
-      <Stack gap="xs">
-        {bookmark.url && (
-          <Text size="sm" c="dimmed" truncate>
-            {bookmark.url}
-          </Text>
-        )}
-        {bookmark.domain && (
-          <Text size="sm" c="blue" fw={500}>
-            {bookmark.domain}
-          </Text>
-        )}
-        {bookmark.ageDisplay && (
-          <Text size="xs" c="dimmed">
-            Added: {bookmark.ageDisplay}
-          </Text>
-        )}
-        {bookmark.dateAdded && !bookmark.ageDisplay && (
-          <Text size="xs" c="dimmed">
-            Added: {format(chromeTimeToDate(bookmark.dateAdded), 'PPp')}
-          </Text>
-        )}
-        {bookmark.dateLastUsed !== undefined && (
-          <Text size="xs" c="dimmed">
-            {bookmark.dateLastUsed === 0 ? 'Never visited' : 'Previously visited'}
-          </Text>
-        )}
-        {bookmark.dateLastUsed !== undefined && bookmark.dateLastUsed > 0 && (
-          <Text size="xs" c="dimmed">
-            Last visited: {format(chromeTimeToDate(bookmark.dateLastUsed), 'PPp')}
-          </Text>
-        )}
-      </Stack>
+        <Stack gap="xs">
+          {bookmark.url && (
+            <Text size="sm" c="dimmed" truncate>
+              {bookmark.url}
+            </Text>
+          )}
+          {bookmark.domain && (
+            <Text size="sm" c="blue" fw={500}>
+              {bookmark.domain}
+            </Text>
+          )}
+          {bookmark.ageDisplay && (
+            <Text size="xs" c="dimmed">
+              Added: {bookmark.ageDisplay}
+            </Text>
+          )}
+          {bookmark.dateAdded && !bookmark.ageDisplay && (
+            <Text size="xs" c="dimmed">
+              Added: {format(chromeTimeToDate(bookmark.dateAdded), 'PPp')}
+            </Text>
+          )}
+          {bookmark.dateLastUsed !== undefined && (
+            <Text size="xs" c="dimmed">
+              {bookmark.dateLastUsed === 0 ? 'Never visited' : 'Previously visited'}
+            </Text>
+          )}
+          {bookmark.dateLastUsed !== undefined && bookmark.dateLastUsed > 0 && (
+            <Text size="xs" c="dimmed">
+              Last visited: {format(chromeTimeToDate(bookmark.dateLastUsed), 'PPp')}
+            </Text>
+          )}
+        </Stack>
+      </div>
+      
+      {/* Only show status bar for URL bookmarks, not folders */}
+      {!isFolder && (
+        <BookmarkStatusBar 
+          status={status}
+          loading={loading && !status}
+        />
+      )}
     </Card>
   );
 } 

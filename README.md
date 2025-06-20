@@ -25,9 +25,13 @@ This project was created to help manage and analyze Chrome bookmarks by:
   - Sort by date added/last used
   - Filter by bookmark type (PDF, video, etc.)
   - Detect and manage broken links:
-    - Check URL accessibility with HEAD-first optimization
-    - Categorize errors (DNS, SSL, Server, etc.)
-    - Delete broken bookmarks by title
+    - Smart HEAD request validation with minimal false positives
+    - Intelligent categorization of link status:
+      - **Broken**: 404 Not Found, 410 Gone, DNS/connection errors
+      - **Login Required**: 401 Unauthorized, 403 Forbidden, 999 Bot Blocked
+      - **Available**: 200 OK, 301/302 Redirects
+    - Conservative approach: only marks links as broken for definitive failures
+    - Handles login-protected sites (LeetCode, LinkedIn, Twitter) correctly
     - Multi-layer caching for performance (memory + SQLite)
     - Persistent cache across application restarts
 
@@ -36,11 +40,13 @@ This project was created to help manage and analyze Chrome bookmarks by:
   - Title and description
   - Last visited timestamp
   - Basic bookmark statistics
-  - Broken link detection and management:
-    - Visual error categorization
-    - Detailed URL check information
-    - Cache statistics and management
-    - Real-time status updates
+      - Smart link validation and management:
+      - Visual status categorization (Broken, Login Required, Available)
+      - Detailed URL check information with status codes
+      - Conservative broken link detection (minimal false positives)
+      - Login/paywall protected bookmark identification
+      - Cache statistics and management
+      - Real-time status updates
 - Local-only deployment
 - Modern, clean UI for bookmark management
 
@@ -55,13 +61,17 @@ The project follows a clean architecture pattern with clear separation of concer
    - Handles loading, parsing, and querying bookmark data
    - Maintains internal state of bookmarks and folders
    - Provides methods for data analysis and statistics
-   - Implements URL accessibility checking with advanced caching:
-     - Multi-layer caching system (memory + SQLite)
-     - HEAD-first HTTP optimization for 10x speed improvement
-     - Per-URL caching with 7-day expiry
+   - Implements smart URL validation with advanced caching:
+     - **Conservative validation**: Only marks as broken for definitive failures
+     - **Smart categorization**: Distinguishes between broken, login-required, and available
+     - **HEAD-first optimization**: 10x faster than traditional GET requests
+     - **Multi-layer caching**: Memory + SQLite for optimal performance
+     - **Login-aware**: Correctly handles protected sites (403, 401, 999 status codes)
+     - **Status code mapping**:
+       - Broken: 404 Not Found, 410 Gone, DNS/connection errors
+       - Login Required: 401 Unauthorized, 403 Forbidden, 999 Bot Blocked, 429 Rate Limited
+       - Available: 200 OK, 301/302/307 Redirects, 500+ Server Errors
      - Persistent cache across application restarts
-     - Error categorization (DNS, SSL, Server, etc.)
-     - Detailed technical information collection
      - Batch processing with rate limiting for performance
 
 2. **Models** (`app/models.py`)
@@ -87,7 +97,10 @@ The project follows a clean architecture pattern with clear separation of concer
      - `/stats`: Get bookmark statistics
      - `/broken`: Get broken bookmarks (cache-only, fast)
      - `/broken/cache`: Cache statistics and management
-     - `/broken/check`: Force fresh URL checks (bypasses cache)
+     - `/validate-broken`: Validate broken bookmarks with HEAD requests
+       - Smart categorization: broken vs login-required vs available
+       - Conservative validation with minimal false positives
+       - Updates database with validation results
 
 4. **CLI Interface** (`app/cli.py`)
    - Command-line interface using argparse
@@ -219,6 +232,44 @@ The API will be available at `http://localhost:8000` with the following endpoint
 API documentation is available at:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+## Smart Link Validation System
+
+The application implements an intelligent HEAD request validation system that minimizes false positives while accurately detecting truly broken links.
+
+### Validation Philosophy
+
+**Conservative Approach**: Only mark links as "broken" when we're certain they don't exist. This prevents false positives from login-protected sites, bot-blocking, or temporary server issues.
+
+### Status Code Classification
+
+| Status Code | Category | Is Broken? | Reason | Examples |
+|-------------|----------|------------|---------|-----------|
+| **200-299** | Available | ❌ No | Content accessible | Most working sites |
+| **301/302/307** | Available | ❌ No | Redirects (likely to login) | Google Docs, some articles |
+| **401** | Login Required | ❌ No | Authentication required | Proper auth-protected APIs |
+| **403** | Login Required | ❌ No | Access forbidden/bot blocked | LeetCode, Twitter, LinkedIn |
+| **404** | **Broken** | ✅ **Yes** | **Page not found** | **Truly broken links** |
+| **410** | **Broken** | ✅ **Yes** | **Page gone/removed** | **Intentionally removed** |
+| **429** | Login Required | ❌ No | Rate limited | Too many requests |
+| **500+** | Available | ❌ No | Server error (temporary) | Site exists but has issues |
+| **999** | Login Required | ❌ No | Custom bot blocking | LinkedIn's custom code |
+| **DNS Error** | **Broken** | ✅ **Yes** | **Domain doesn't exist** | **Invalid domains** |
+
+### Real-World Examples
+
+- **LeetCode Problems** (`403 Forbidden`) → **Login Required** ✅ Correct!
+- **LinkedIn Profiles** (`999 Bot Blocked`) → **Login Required** ✅ Correct!
+- **Google Docs** (`302 Redirect`) → **Available** ✅ Correct!
+- **Non-existent pages** (`404 Not Found`) → **Broken** ✅ Correct!
+- **Dead domains** (`DNS Error`) → **Broken** ✅ Correct!
+
+### Benefits
+
+1. **Minimal False Positives**: Login-protected sites aren't marked as broken
+2. **Accurate Detection**: Only truly broken links are flagged
+3. **Fast Performance**: HEAD requests are 10x faster than GET
+4. **Smart Categorization**: Distinguishes between broken, login-required, and available
 
 ## Advanced Caching Architecture
 

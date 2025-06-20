@@ -3,7 +3,10 @@ import type {
   BookmarksResponse, 
   UnvisitedResponse, 
   HealthResponse,
-  BrokenBookmarksResponse 
+  BrokenBookmarksResponse,
+  DeleteBookmarkResponse,
+  BookmarkStatusResponse,
+  AllBookmarkStatusesResponse
 } from '../types/bookmarks';
 
 const api = axios.create({
@@ -59,7 +62,7 @@ export const getCacheStats = async (): Promise<CacheStats> => {
       expired_entries: 0,
       cache_expiry_days: 7,
     };
-  } catch (error) {
+  } catch {
     // Return a default value on error
     return {
       total_cached: 0,
@@ -77,4 +80,19 @@ export const clearCache = async (): Promise<void> => {
   if (!response.ok) {
     throw new Error('Failed to clear cache');
   }
+};
+
+export const deleteBookmark = async (title: string): Promise<DeleteBookmarkResponse> => {
+  const { data } = await api.delete<DeleteBookmarkResponse>(`/bookmarks/${encodeURIComponent(title)}`);
+  return data;
+};
+
+export const getBookmarkStatus = async (bookmarkId: string): Promise<BookmarkStatusResponse> => {
+  const { data } = await api.get<BookmarkStatusResponse>(`/bookmark-status/${bookmarkId}`);
+  return data;
+};
+
+export const getAllBookmarkStatuses = async (): Promise<AllBookmarkStatusesResponse> => {
+  const { data } = await api.get<AllBookmarkStatusesResponse>('/bookmark-statuses');
+  return data;
 }; 

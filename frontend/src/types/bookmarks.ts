@@ -73,4 +73,36 @@ export interface BrokenBookmark {
 export interface BrokenBookmarksResponse {
   status: 'success';
   result: BrokenBookmark[];
+}
+
+export interface DeleteBookmarkResponse {
+  status: 'success' | 'error';
+  message: string;
+  deleted: boolean;
+}
+
+export interface BookmarkStatus {
+  checked: boolean;
+  accessible: boolean | null;
+  lastChecked: string | null;
+  statusCode: number | null;
+  responseTime: number | null;
+  loginRequired: boolean;
+}
+
+export interface BookmarkStatusResponse {
+  status: 'found' | 'not_found';
+  bookmarkId: string;
+  checked: boolean;
+  accessible: boolean | null;
+  lastChecked: string | null;
+  statusCode: number | null;
+  responseTime: number | null;
+  loginRequired: boolean;
+}
+
+export interface AllBookmarkStatusesResponse {
+  status: 'success';
+  statuses: Record<string, BookmarkStatus>;
+  totalCount: number;
 } 

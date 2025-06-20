@@ -14,12 +14,20 @@ class BookmarkCacheEntry:
     name: Optional[str] = None
     last_checked: Optional[str] = None  # ISO format string
     broken_status: Optional[str] = None
+    login_required: Optional[str] = None  # 'yes', 'no', 'unknown'
     error_details: Optional[Dict[str, Any]] = None
 
 class SQLiteBookmarkCache:
     def __init__(self, db_path: str = DB_PATH):
         self.db_path = db_path
         self._init_db()
+
+    def _safe_json_loads(self, data):
+        """Safely load JSON data, return None if invalid"""
+        try:
+            return json.loads(data) if data else None
+        except (json.JSONDecodeError, TypeError):
+            return None
 
     def _init_db(self):
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
@@ -31,6 +39,7 @@ class SQLiteBookmarkCache:
                     name TEXT,
                     last_checked TEXT,
                     broken_status TEXT,
+                    login_required TEXT DEFAULT 'unknown',
                     error_details TEXT
                 )
             ''')
@@ -39,13 +48,14 @@ class SQLiteBookmarkCache:
     def upsert(self, entry: BookmarkCacheEntry):
         with sqlite3.connect(self.db_path) as conn:
             conn.execute('''
-                INSERT INTO bookmarks_cache (id, url, name, last_checked, broken_status, error_details)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO bookmarks_cache (id, url, name, last_checked, broken_status, login_required, error_details)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     url=excluded.url,
                     name=excluded.name,
                     last_checked=excluded.last_checked,
                     broken_status=excluded.broken_status,
+                    login_required=excluded.login_required,
                     error_details=excluded.error_details
             ''', (
                 entry.id,
@@ -53,6 +63,7 @@ class SQLiteBookmarkCache:
                 entry.name,
                 entry.last_checked,
                 entry.broken_status,
+                entry.login_required,
                 json.dumps(entry.error_details) if entry.error_details else None
             ))
             conn.commit()
@@ -67,7 +78,8 @@ class SQLiteBookmarkCache:
                     name=row[2],
                     last_checked=row[3],
                     broken_status=row[4],
-                    error_details=json.loads(row[5]) if row[5] else None
+                    login_required=row[6] if len(row) > 6 else 'unknown',
+                    error_details=self._safe_json_loads(row[5]) if len(row) > 5 else None
                 )
             return None
 
@@ -81,7 +93,8 @@ class SQLiteBookmarkCache:
                     name=row[2],
                     last_checked=row[3],
                     broken_status=row[4],
-                    error_details=json.loads(row[5]) if row[5] else None
+                    login_required=row[6] if len(row) > 6 else 'unknown',
+                    error_details=self._safe_json_loads(row[5]) if len(row) > 5 else None
                 )
             return None
 
@@ -95,7 +108,8 @@ class SQLiteBookmarkCache:
                     name=row[2],
                     last_checked=row[3],
                     broken_status=row[4],
-                    error_details=json.loads(row[5]) if row[5] else None
+                    login_required=row[6] if len(row) > 6 else 'unknown',
+                    error_details=self._safe_json_loads(row[5]) if len(row) > 5 else None
                 ) for row in rows
             ]
 
@@ -110,7 +124,8 @@ class SQLiteBookmarkCache:
                     name=row[2],
                     last_checked=row[3],
                     broken_status=row[4],
-                    error_details=json.loads(row[5]) if row[5] else None
+                    login_required=row[6] if len(row) > 6 else 'unknown',
+                    error_details=self._safe_json_loads(row[5]) if len(row) > 5 else None
                 ) for row in rows
             ]
 

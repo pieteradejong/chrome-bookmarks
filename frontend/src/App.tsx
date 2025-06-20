@@ -2,10 +2,12 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell, Container, Title, Stack, Tabs, LoadingOverlay, Text, Switch, Group } from '@mantine/core';
 import { useBookmarks, useUnvisitedBookmarks, useBrokenBookmarks, flattenBookmarks } from './hooks/useBookmarks';
+// import { deleteBookmark } from './api/client';
 import { BookmarkItem } from './components/BookmarkItem';
 import { BrokenBookmarkItem } from './components/BrokenBookmarkItem';
-import { CacheStats } from './components/CacheStats';
-import type { Bookmark } from './types/bookmarks';
+// import { CacheStats } from './components/CacheStats';
+import type { Bookmark, BrokenBookmark } from './types/bookmarks';
+import { BookmarkStatusProvider } from './contexts/BookmarkStatusContext';
 import { useState } from 'react';
 import '@mantine/core/styles.css';
 
@@ -13,15 +15,38 @@ const queryClient = new QueryClient();
 
 function BookmarkList() {
   const [includeDetails, setIncludeDetails] = useState(false);
+  // const queryClient = useQueryClient();
   const { data: bookmarksData, isLoading: isLoadingBookmarks, error: bookmarksError } = useBookmarks();
   const { data: unvisitedData, isLoading: isLoadingUnvisited, error: unvisitedError } = useUnvisitedBookmarks();
   const { data: brokenData, isLoading: isLoadingBroken, error: brokenError } = useBrokenBookmarks(includeDetails);
+
+  // const deleteMutation = useMutation({
+  //   mutationFn: (title: string) => deleteBookmark(title),
+  //   onSuccess: () => {
+  //     // Invalidate and refetch all bookmark queries
+  //     queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+  //     queryClient.invalidateQueries({ queryKey: ['unvisited'] });
+  //     queryClient.invalidateQueries({ queryKey: ['broken'] });
+  //   },
+  // });
 
   const handleBookmarkClick = (bookmark: Bookmark) => {
     if (bookmark.url) {
       window.open(bookmark.url, '_blank');
     }
   };
+
+  const handleBrokenBookmarkClick = (brokenBookmark: BrokenBookmark) => {
+    if (brokenBookmark.bookmark.url) {
+      window.open(brokenBookmark.bookmark.url, '_blank');
+    }
+  };
+
+  // const handleDeleteBookmark = (brokenBookmark: BrokenBookmark) => {
+  //   if (confirm(`Are you sure you want to delete "${brokenBookmark.bookmark.name}"?`)) {
+  //     deleteMutation.mutate(brokenBookmark.bookmark.name);
+  //   }
+  // };
 
   // Handle the root bookmark object
   const rootBookmark = bookmarksData?.result || { id: 'root', name: 'Bookmarks', type: 'folder', children: [] };
@@ -87,7 +112,7 @@ function BookmarkList() {
               checked={includeDetails}
               onChange={(event) => setIncludeDetails(event.currentTarget.checked)}
             />
-            <CacheStats />
+            {/* <CacheStats /> */}
           </Group>
           <LoadingOverlay visible={isLoadingBroken} />
           {brokenBookmarks.length > 0 ? (
@@ -95,6 +120,7 @@ function BookmarkList() {
               <BrokenBookmarkItem
                 key={brokenBookmark.bookmark.id}
                 brokenBookmark={brokenBookmark}
+                onClick={handleBrokenBookmarkClick}
               />
             ))
           ) : (
@@ -109,21 +135,23 @@ function BookmarkList() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <MantineProvider>
-        <AppShell header={{ height: 60 }} padding="md">
-          <AppShell.Header>
-            <Container h="100%" py="md">
-              <Title order={1}>Chrome Bookmarks Manager</Title>
-            </Container>
-          </AppShell.Header>
+      <BookmarkStatusProvider>
+        <MantineProvider>
+          <AppShell header={{ height: 60 }} padding="md">
+            <AppShell.Header>
+              <Container h="100%" py="md">
+                <Title order={1}>Chrome Bookmarks Manager</Title>
+              </Container>
+            </AppShell.Header>
 
-          <AppShell.Main>
-            <Container>
-              <BookmarkList />
-            </Container>
-          </AppShell.Main>
-        </AppShell>
-      </MantineProvider>
+            <AppShell.Main>
+              <Container>
+                <BookmarkList />
+              </Container>
+            </AppShell.Main>
+          </AppShell>
+        </MantineProvider>
+      </BookmarkStatusProvider>
     </QueryClientProvider>
   );
 }

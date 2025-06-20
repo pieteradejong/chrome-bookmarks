@@ -1,8 +1,6 @@
-import { Card, Text, Group, Badge, Stack, Collapse, Button } from '@mantine/core';
+import { Card, Text, Group, Stack } from '@mantine/core';
 import { 
   IconAlertCircle, 
-  IconChevronDown, 
-  IconChevronUp,
   IconLock,
   IconWorld,
   IconServer,
@@ -11,12 +9,15 @@ import {
   IconShieldLock
 } from '@tabler/icons-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
 import { ErrorCategory } from '../types/bookmarks';
 import type { BrokenBookmark } from '../types/bookmarks';
+import { BookmarkStatusBar } from './BookmarkStatusBar';
+import { useBookmarkStatusContext } from '../contexts/BookmarkStatusContext';
 
 interface BrokenBookmarkItemProps {
   brokenBookmark: BrokenBookmark;
+  onClick?: (brokenBookmark: BrokenBookmark) => void;
+  // onDelete?: (brokenBookmark: BrokenBookmark) => void;
 }
 
 const getErrorCategoryIcon = (category: ErrorCategory) => {
@@ -59,85 +60,66 @@ const getErrorCategoryColor = (category: ErrorCategory): string => {
   }
 };
 
-export function BrokenBookmarkItem({ brokenBookmark }: BrokenBookmarkItemProps) {
-  const [showDetails, setShowDetails] = useState(false);
-  const { bookmark, error, details } = brokenBookmark;
+export function BrokenBookmarkItem({ brokenBookmark, onClick }: BrokenBookmarkItemProps) {
+  const { bookmark, error } = brokenBookmark;
+  const { getStatus, loading } = useBookmarkStatusContext();
+  
+  const status = getStatus(bookmark.id);
 
   return (
-    <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Group justify="space-between" mb="xs">
-        <Group gap="xs">
-          {getErrorCategoryIcon(error.category)}
-          <Text fw={500}>{bookmark.name}</Text>
-        </Group>
-        <Badge color={getErrorCategoryColor(error.category)}>
-          {error.category}
-        </Badge>
-      </Group>
-
-      <Stack gap="xs">
-        {bookmark.url && (
-          <Text size="sm" c="dimmed" truncate>
-            {bookmark.url}
-          </Text>
-        )}
-        {bookmark.dateAdded && (
-          <Text size="xs" c="dimmed">
-            Added: {format(bookmark.dateAdded, 'PPp')}
-          </Text>
-        )}
-        <Text size="sm" c={getErrorCategoryColor(error.category)}>
-          {error.message}
-        </Text>
-
-        {details && (
-          <>
-            <Button
+    <Card 
+      shadow="sm" 
+      padding={0}
+      radius="md" 
+      withBorder
+      style={{ cursor: 'pointer', overflow: 'hidden' }}
+      onClick={() => onClick?.(brokenBookmark)}
+    >
+      <div style={{ padding: 'var(--mantine-spacing-lg)' }}>
+        <Group justify="space-between" mb="xs">
+          <Group gap="xs">
+            {getErrorCategoryIcon(error.category)}
+            <Text fw={500}>{bookmark.name}</Text>
+          </Group>
+          <Group gap="xs">
+            {/* <ActionIcon
+              color="red"
               variant="subtle"
-              size="xs"
-              rightSection={showDetails ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
-              onClick={() => setShowDetails(!showDetails)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click event
+                onDelete?.(brokenBookmark);
+              }}
             >
-              {showDetails ? 'Hide Details' : 'Show Details'}
-            </Button>
+              <IconTrash size={16} />
+            </ActionIcon> */}
+            {/* <Badge color={getErrorCategoryColor(error.category)}>
+              {error.category}
+            </Badge> */}
+          </Group>
+        </Group>
 
-            <Collapse in={showDetails}>
-              <Stack gap="xs" pl="md">
-                {details.dnsResolved !== undefined && (
-                  <Text size="sm">
-                    DNS Resolution: {details.dnsResolved ? '✓' : '✗'}
-                  </Text>
-                )}
-                {details.sslValid !== undefined && (
-                  <Text size="sm">
-                    SSL Valid: {details.sslValid ? '✓' : '✗'}
-                  </Text>
-                )}
-                {details.statusCode && (
-                  <Text size="sm">
-                    Status Code: {details.statusCode}
-                  </Text>
-                )}
-                {details.contentType && (
-                  <Text size="sm">
-                    Content Type: {details.contentType}
-                  </Text>
-                )}
-                {details.responseTime && (
-                  <Text size="sm">
-                    Response Time: {details.responseTime.toFixed(2)}s
-                  </Text>
-                )}
-                {details.finalUrl && details.finalUrl !== bookmark.url && (
-                  <Text size="sm">
-                    Final URL: {details.finalUrl}
-                  </Text>
-                )}
-              </Stack>
-            </Collapse>
-          </>
-        )}
-      </Stack>
+        <Stack gap="xs">
+          {bookmark.url && (
+            <Text size="sm" c="dimmed" truncate>
+              {bookmark.url}
+            </Text>
+          )}
+          {bookmark.dateAdded && (
+            <Text size="xs" c="dimmed">
+              Added: {format(bookmark.dateAdded, 'PPp')}
+            </Text>
+          )}
+          <Text size="sm" c={getErrorCategoryColor(error.category)}>
+            {error.message}
+          </Text>
+        </Stack>
+      </div>
+      
+      {/* Status bar showing broken bookmark status */}
+      <BookmarkStatusBar 
+        status={status}
+        loading={loading && !status}
+      />
     </Card>
   );
 } 
