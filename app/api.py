@@ -115,7 +115,7 @@ async def stats(store: BookmarkStore = Depends(get_bookmark_store)):
     "/broken", response_model=BrokenBookmarksResponse, status_code=status.HTTP_200_OK
 )
 async def broken_bookmarks():
-    """Get a list of broken bookmarks from the cache only (no network checks)."""
+    """Get a list of truly broken bookmarks from the cache (excludes login-required sites)."""
     try:
         entries = sqlite_cache.get_all()
         broken = [
@@ -131,7 +131,8 @@ async def broken_bookmarks():
                 "error": entry.error_details["message"] if isinstance(entry.error_details, dict) and "message" in entry.error_details else str(entry.error_details),
                 "details": entry.error_details if entry.broken_status == "broken" else None,
             }
-            for entry in entries if entry.broken_status == "broken"
+            for entry in entries 
+            if entry.broken_status == "broken" and entry.login_required != "yes"
         ]
         return {"status": "success", "result": broken}
     except Exception as e:

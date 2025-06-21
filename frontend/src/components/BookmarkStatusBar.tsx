@@ -1,22 +1,143 @@
+import React from 'react';
 import { Box, Group, Text, Loader, Badge } from '@mantine/core';
-import { IconCheck, IconX, IconClock, IconLock, IconQuestionMark } from '@tabler/icons-react';
-import { formatDistanceToNow } from 'date-fns';
+import { IconCheck, IconX, IconLock, IconRobot, IconClock, IconServerOff, IconTrash, IconQuestionMark } from '@tabler/icons-react';
 import type { BookmarkStatus } from '../types/bookmarks';
 
 interface BookmarkStatusBarProps {
-  status?: BookmarkStatus;
+  status: BookmarkStatus | null;
   loading?: boolean;
 }
 
-export function BookmarkStatusBar({ status, loading }: BookmarkStatusBarProps) {
+export const BookmarkStatusBar: React.FC<BookmarkStatusBarProps> = ({ status, loading }) => {
+  const getStatusInfo = () => {
+    if (!status) {
+      return {
+        icon: <IconQuestionMark size={14} />,
+        text: 'Status unknown',
+        color: 'gray',
+        bgColor: 'gray.1',
+        description: null
+      };
+    }
+    
+    // Use the new fields if available, fall back to old logic
+    if (status.broken_status === 'ok' || status.accessible === true) {
+      if (status.login_required === 'yes' || status.loginRequired) {
+        return {
+          icon: <IconLock size={14} />,
+          text: 'Login required',
+          color: 'yellow.7',
+          bgColor: 'yellow.1',
+          description: 'This page exists but requires authentication'
+        };
+      }
+      if (status.login_required === 'bot_protected') {
+        return {
+          icon: <IconRobot size={14} />,
+          text: 'Bot protection',
+          color: 'blue.7',
+          bgColor: 'blue.1',
+          description: 'This page blocks automated requests'
+        };
+      }
+      return {
+        icon: <IconCheck size={14} />,
+        text: 'Link works',
+        color: 'green.7',
+        bgColor: 'green.1',
+        description: null
+      };
+    }
+    
+    // Handle broken status with different reasons
+    if (status.broken_status === 'broken' || status.accessible === false) {
+      const statusCode = status.error_details?.status_code || status.statusCode;
+      
+      if (statusCode === 404) {
+        return {
+          icon: <IconX size={14} />,
+          text: 'Page not found',
+          color: 'red.7',
+          bgColor: 'red.1',
+          description: 'This page does not exist (404)'
+        };
+      }
+      
+      if (statusCode === 410) {
+        return {
+          icon: <IconTrash size={14} />,
+          text: 'Page removed',
+          color: 'orange.7',
+          bgColor: 'orange.1',
+          description: 'This page was permanently removed (410)'
+        };
+      }
+      
+      if (statusCode === 500 || statusCode === 503) {
+        return {
+          icon: <IconServerOff size={14} />,
+          text: 'Server error',
+          color: 'grape.7',
+          bgColor: 'grape.1',
+          description: `Server is having issues (${statusCode})`
+        };
+      }
+      
+      if (statusCode === 429) {
+        return {
+          icon: <IconClock size={14} />,
+          text: 'Rate limited',
+          color: 'yellow.8',
+          bgColor: 'yellow.2',
+          description: 'Too many requests - try again later'
+        };
+      }
+      
+      if (statusCode === 403) {
+        return {
+          icon: <IconLock size={14} />,
+          text: 'Access forbidden',
+          color: 'red.7',
+          bgColor: 'red.1',
+          description: 'Access to this page is forbidden (403)'
+        };
+      }
+      
+      if (!statusCode && status.error_details?.error) {
+        return {
+          icon: <IconX size={14} />,
+          text: 'Connection error',
+          color: 'red.7',
+          bgColor: 'red.1',
+          description: 'Could not connect to the server'
+        };
+      }
+      
+      return {
+        icon: <IconX size={14} />,
+        text: 'Link broken',
+        color: 'red.7',
+        bgColor: 'red.1',
+        description: statusCode ? `HTTP ${statusCode} error` : 'Unknown error'
+      };
+    }
+    
+    return {
+      icon: <IconQuestionMark size={14} />,
+      text: 'Status unknown',
+      color: 'gray.6',
+      bgColor: 'gray.1',
+      description: null
+    };
+  };
+
   if (loading) {
     return (
       <Box 
         bg="gray.1" 
         p="xs" 
         style={{ 
-          borderTop: '1px solid #e9ecef',
-          borderRadius: '0 0 var(--mantine-radius-md) var(--mantine-radius-md)'
+          borderTop: '1px solid var(--mantine-color-gray-3)'
         }}
       >
         <Group gap="xs" justify="center">
@@ -27,98 +148,45 @@ export function BookmarkStatusBar({ status, loading }: BookmarkStatusBarProps) {
     );
   }
 
-  if (!status || !status.checked) {
-    return (
-      <Box 
-        bg="gray.1" 
-        p="xs" 
-        style={{ 
-          borderTop: '1px solid #e9ecef',
-          borderRadius: '0 0 var(--mantine-radius-md) var(--mantine-radius-md)'
-        }}
-      >
-        <Group gap="xs" justify="center">
-          <IconQuestionMark size={12} color="gray" />
-          <Text size="xs" c="dimmed">Status unknown</Text>
-        </Group>
-      </Box>
-    );
-  }
-
-  const getStatusContent = () => {
-    if (status.accessible === true) {
-      return {
-        icon: <IconCheck size={12} color="green" />,
-        text: "Link works",
-        color: "green.1",
-        textColor: "green.7"
-      };
-    } else if (status.accessible === false) {
-      if (status.loginRequired) {
-        return {
-          icon: <IconLock size={12} color="yellow" />,
-          text: "Login required",
-          color: "yellow.1",
-          textColor: "yellow.7"
-        };
-      } else {
-        return {
-          icon: <IconX size={12} color="red" />,
-          text: "Link broken",
-          color: "red.1",
-          textColor: "red.7"
-        };
-      }
-    } else {
-      return {
-        icon: <IconQuestionMark size={12} color="gray" />,
-        text: "Status unclear",
-        color: "gray.1",
-        textColor: "gray.6"
-      };
-    }
-  };
-
-  const { icon, text, color, textColor } = getStatusContent();
-  
-  const lastCheckedText = status.lastChecked 
-    ? `Checked ${formatDistanceToNow(new Date(status.lastChecked), { addSuffix: true })}`
-    : 'Never checked';
+  const statusInfo = getStatusInfo();
+  const lastChecked = status?.lastChecked ? new Date(status.lastChecked) : null;
+  const statusCode = status?.error_details?.status_code || status?.statusCode;
 
   return (
     <Box 
-      bg={color} 
-      p="xs" 
+      bg={statusInfo.bgColor}
+      p="sm"
       style={{ 
-        borderTop: '1px solid #e9ecef',
-        borderRadius: '0 0 var(--mantine-radius-md) var(--mantine-radius-md)'
+        borderTop: '1px solid var(--mantine-color-gray-3)'
       }}
     >
       <Group justify="space-between" gap="xs">
         <Group gap="xs">
-          {icon}
-          <Text size="xs" c={textColor} fw={500}>
-            {text}
+          <Box c={statusInfo.color}>
+            {statusInfo.icon}
+          </Box>
+          <Text size="sm" c={statusInfo.color} fw={500}>
+            {statusInfo.text}
           </Text>
-          {status.statusCode && (
-            <Badge size="xs" variant="light" color={status.statusCode < 400 ? 'green' : 'red'}>
-              {status.statusCode}
+          {statusCode && (
+            <Badge size="xs" variant="light" color={statusCode < 400 ? 'green' : 'red'}>
+              HTTP {statusCode}
             </Badge>
           )}
         </Group>
         
-        <Group gap="xs">
-          {status.responseTime && (
-            <Text size="xs" c="dimmed">
-              {Math.round(status.responseTime * 1000)}ms
-            </Text>
-          )}
+        {lastChecked && (
           <Text size="xs" c="dimmed">
-            <IconClock size={10} style={{ marginRight: 2 }} />
-            {lastCheckedText}
+            Checked: {lastChecked.toLocaleDateString()}
           </Text>
-        </Group>
+        )}
       </Group>
+      
+      {statusInfo.description && (
+        <Text size="xs" c="dimmed" mt="xs">
+          {statusInfo.description}
+        </Text>
+      )}
     </Box>
   );
-} 
+}; 

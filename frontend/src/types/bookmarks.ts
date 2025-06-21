@@ -88,6 +88,14 @@ export interface BookmarkStatus {
   statusCode: number | null;
   responseTime: number | null;
   loginRequired: boolean;
+  broken_status?: 'ok' | 'broken';
+  login_required?: 'yes' | 'no' | 'bot_protected' | 'unknown';
+  error_details?: {
+    status_code?: number;
+    reason?: string;
+    error?: string;
+    message?: string;
+  };
 }
 
 export interface BookmarkStatusResponse {

@@ -36,22 +36,33 @@ async def check_and_update(bookmark):
     print(f"🌐 [NET] Checking: {bookmark.name} ({bookmark.url.full}) ...")
     is_accessible, error_details, details = await store._check_url_accessible(bookmark.url.full)
     now = datetime.utcnow().isoformat()
-    broken_status = "broken" if not is_accessible else "ok"
+    
+    # Determine broken status and login_required
+    if error_details.category == ErrorCategory.AUTH_REQUIRED:
+        # AUTH_REQUIRED means the site exists but needs login - it's not truly broken
+        broken_status = "ok"
+        login_required = "yes"
+    else:
+        broken_status = "broken" if not is_accessible else "ok"
+        login_required = "no"
+    
     def error_details_to_dict(error_details):
         d = error_details._asdict() if hasattr(error_details, '_asdict') else dict(error_details)
         if isinstance(d.get('category'), ErrorCategory):
             d['category'] = d['category'].value
         return d
+    
     entry = BookmarkCacheEntry(
         id=bookmark.id,
         url=bookmark.url.full,
         name=bookmark.name,
         last_checked=now,
         broken_status=broken_status,
+        login_required=login_required,
         error_details=error_details_to_dict(error_details)
     )
     sqlite_cache.upsert(entry)
-    print(f"{PURPLE}💾 [DB] Saved: {bookmark.name} ({bookmark.url.full}) as {broken_status}{RESET}")
+    print(f"{PURPLE}💾 [DB] Saved: {bookmark.name} ({bookmark.url.full}) as {broken_status} (login_required: {login_required}){RESET}")
     return broken_status
 
 async def main():
