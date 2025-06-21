@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookmark Health Checker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="icon">🔖</span>
+        <h1>Bookmark Health</h1>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Initial State -->
+      <div id="initial-state" class="state">
+        <div class="welcome">
+          <h2>Check Your Bookmarks</h2>
+          <p>Find broken links, duplicates, and unused bookmarks</p>
+          <button id="scan-btn" class="primary-btn">
+            <span class="btn-icon">🔍</span>
+            Start Scan
+          </button>
+          
+          <!-- Debug Console -->
+          <div class="debug-console" id="debug-console" style="display: none;">
+            <h4>Debug Log:</h4>
+            <div class="debug-log" id="debug-log"></div>
+            <button id="toggle-debug" class="secondary-btn" style="margin-top: 8px;">Show Debug</button>
+          </div>
+        </div>
+        
+        <div class="quick-stats" id="quick-stats" style="display: none;">
+          <div class="stat">
+            <span class="stat-number" id="total-bookmarks">0</span>
+            <span class="stat-label">Total Bookmarks</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number" id="last-scan">Never</span>
+            <span class="stat-label">Last Scan</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scanning State -->
+      <div id="scanning-state" class="state" style="display: none;">
+        <div class="scanning">
+          <div class="spinner"></div>
+          <h3 id="scan-title">Scanning Bookmarks...</h3>
+          
+          <!-- Progress Overview -->
+          <div class="progress-overview">
+            <div class="progress-stats">
+              <span class="stat-item">
+                <strong id="progress-current">0</strong> of <strong id="progress-total">0</strong> checked
+              </span>
+              <span class="stat-item">
+                <strong id="progress-percentage">0</strong>% complete
+              </span>
+            </div>
+            
+            <div class="time-estimates">
+              <div class="time-stat">
+                <span class="time-label">Elapsed:</span>
+                <span id="elapsed-time">0s</span>
+              </div>
+              <div class="time-stat">
+                <span class="time-label">Remaining:</span>
+                <span id="remaining-time">Calculating...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          
+          <!-- Current Activity -->
+          <div class="current-activity">
+            <p id="current-status">Preparing scan...</p>
+            <p class="current-url" id="current-url"></p>
+          </div>
+          
+          <!-- Scan Strategy Info -->
+          <div class="scan-info">
+            <p id="scan-strategy-info">Quick scan of recent bookmarks</p>
+          </div>
+          
+          <!-- Live Results Preview -->
+          <div class="live-results">
+            <div class="result-counter working">
+              <span class="counter-icon">✅</span>
+              <span class="counter-number" id="live-working">0</span>
+              <span class="counter-label">Working</span>
+            </div>
+            <div class="result-counter issues">
+              <span class="counter-icon">⚠️</span>
+              <span class="counter-number" id="live-issues">0</span>
+              <span class="counter-label">Issues</span>
+            </div>
+            <div class="result-counter protected">
+              <span class="counter-icon">🔒</span>
+              <span class="counter-number" id="live-protected">0</span>
+              <span class="counter-label">Protected</span>
+            </div>
+          </div>
+
+          <button id="cancel-scan-btn" class="secondary-btn">Cancel Scan</button>
+        </div>
+      </div>
+
+      <!-- Results State -->
+      <div id="results-state" class="state" style="display: none;">
+        <div class="results-header">
+          <h2>Scan Results</h2>
+          <button id="rescan-btn" class="icon-btn" title="Scan Again">🔄</button>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="summary-stats">
+          <div class="stat-card working">
+            <span class="stat-icon">✅</span>
+            <div class="stat-info">
+              <span class="stat-number" id="working-count">0</span>
+              <span class="stat-label">Working</span>
+            </div>
+          </div>
+          
+          <div class="stat-card issues">
+            <span class="stat-icon">⚠️</span>
+            <div class="stat-info">
+              <span class="stat-number" id="issues-count">0</span>
+              <span class="stat-label">Need Review</span>
+            </div>
+          </div>
+          
+          <div class="stat-card protected">
+            <span class="stat-icon">🔒</span>
+            <div class="stat-info">
+              <span class="stat-number" id="protected-count">0</span>
+              <span class="stat-label">Protected</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs">
+          <button class="tab-btn active" data-category="issues">Issues</button>
+          <button class="tab-btn" data-category="protected">Protected</button>
+          <button class="tab-btn" data-category="working">Working</button>
+        </div>
+
+        <!-- Category Content -->
+        <div class="category-content">
+          <!-- Issues Tab -->
+          <div id="issues-tab" class="tab-content active">
+            <div class="category-section">
+              <div class="section-header">
+                <h3>🚫 Connection Errors</h3>
+                <span class="count" id="connection-error-count">0</span>
+              </div>
+              <div class="bookmark-list" id="connection-error-list"></div>
+            </div>
+            
+            <div class="category-section">
+              <div class="section-header">
+                <h3>⏰ Timeouts</h3>
+                <span class="count" id="timeout-count">0</span>
+              </div>
+              <div class="bookmark-list" id="timeout-list"></div>
+            </div>
+            
+            <div class="category-section">
+              <div class="section-header">
+                <h3>❓ Unknown Issues</h3>
+                <span class="count" id="unknown-count">0</span>
+              </div>
+              <div class="bookmark-list" id="unknown-list"></div>
+            </div>
+          </div>
+
+          <!-- Protected Tab -->
+          <div id="protected-tab" class="tab-content">
+            <div class="category-section">
+              <div class="section-header">
+                <h3>🤖 Bot Protected</h3>
+                <span class="count" id="bot-protected-count">0</span>
+              </div>
+              <p class="section-description">Sites like LinkedIn that block automated requests</p>
+              <div class="bookmark-list" id="bot-protected-list"></div>
+            </div>
+            
+            <div class="category-section">
+              <div class="section-header">
+                <h3>🔐 Login Required</h3>
+                <span class="count" id="login-required-count">0</span>
+              </div>
+              <p class="section-description">Sites that require authentication</p>
+              <div class="bookmark-list" id="login-required-list"></div>
+            </div>
+          </div>
+
+          <!-- Working Tab -->
+          <div id="working-tab" class="tab-content">
+            <div class="category-section">
+              <div class="section-header">
+                <h3>✅ Working Links</h3>
+                <span class="count" id="working-links-count">0</span>
+              </div>
+              <p class="section-description">These bookmarks are accessible</p>
+              <div class="bookmark-list" id="working-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="bulk-actions">
+          <button id="export-btn" class="secondary-btn">
+            <span class="btn-icon">📤</span>
+            Export Results
+          </button>
+          <button id="bulk-delete-btn" class="danger-btn" style="display: none;">
+            <span class="btn-icon">🗑️</span>
+            Delete Selected
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../utils/bookmark-checker.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 

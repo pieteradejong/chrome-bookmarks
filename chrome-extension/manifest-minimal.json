@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Bookmark Health Checker",
+  "version": "1.0.0",
+  "description": "Find and clean up broken bookmarks",
+  
+  "permissions": [
+    "bookmarks",
+    "storage"
+  ],
+  
+  "action": {
+    "default_popup": "popup/popup.html"
+  }
+} 

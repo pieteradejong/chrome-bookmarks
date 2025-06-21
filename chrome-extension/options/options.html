@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bookmark Health Checker - Settings</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .setting {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select {
+            margin: 5px 0;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔖 Bookmark Health Checker Settings</h1>
+    
+    <div class="setting">
+        <label>
+            <input type="checkbox" id="autoCheck"> Enable automatic bookmark checking
+        </label>
+        <p>Automatically scan bookmarks in the background</p>
+    </div>
+    
+    <div class="setting">
+        <label for="frequency">Scan frequency:</label>
+        <select id="frequency">
+            <option value="daily">Daily</option>
+            <option value="weekly" selected>Weekly</option>
+            <option value="monthly">Monthly</option>
+        </select>
+    </div>
+    
+    <div class="setting">
+        <label>
+            <input type="checkbox" id="notifications" checked> Show notifications
+        </label>
+        <p>Get notified when issues are found</p>
+    </div>
+    
+    <button id="save">Save Settings</button>
+    
+    <script>
+        // Simple settings page functionality
+        document.getElementById('save').addEventListener('click', () => {
+            const settings = {
+                autoCheck: document.getElementById('autoCheck').checked,
+                frequency: document.getElementById('frequency').value,
+                notifications: document.getElementById('notifications').checked
+            };
+            
+            chrome.storage.sync.set({ settings }, () => {
+                alert('Settings saved!');
+            });
+        });
+        
+        // Load existing settings
+        chrome.storage.sync.get('settings', (data) => {
+            if (data.settings) {
+                document.getElementById('autoCheck').checked = data.settings.autoCheck || false;
+                document.getElementById('frequency').value = data.settings.frequency || 'weekly';
+                document.getElementById('notifications').checked = data.settings.notifications !== false;
+            }
+        });
+    </script>
+</body>
+</html> 
