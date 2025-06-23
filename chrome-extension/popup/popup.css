@@ -746,4 +746,507 @@ body {
 
 .debug-log .log-entry.info {
   color: #3498db;
+}
+
+/* Add new styles for organization features */
+
+/* Organization State */
+.organization {
+  text-align: center;
+  padding: 20px;
+}
+
+.organization h3 {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.organization-progress {
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.organization-progress .progress-bar {
+  flex: 1;
+}
+
+#organization-progress-text {
+  font-weight: 600;
+  color: var(--primary-color);
+  min-width: 40px;
+}
+
+/* Organization Tab Styles */
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.folder-suggestion {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.folder-suggestion:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+}
+
+.folder-suggestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.folder-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-name::before {
+  content: "📁";
+  font-size: 16px;
+}
+
+.folder-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.confidence-score {
+  background: var(--success-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.confidence-score.medium {
+  background: var(--warning-color);
+}
+
+.confidence-score.low {
+  background: var(--text-secondary);
+}
+
+.folder-preview {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.preview-bookmarks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.preview-bookmark {
+  background: var(--primary-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 11px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.create-folder-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.create-folder-btn:hover {
+  background: var(--primary-hover);
+}
+
+.preview-folder-btn {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preview-folder-btn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Duplicates List */
+.duplicates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.duplicate-group {
+  background: var(--background-secondary);
+  border: 1px solid var(--warning-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.duplicate-header {
+  display: flex;
+  align-items: center;
+  justify-content: between;
+  margin-bottom: 12px;
+}
+
+.duplicate-type {
+  background: var(--warning-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.duplicate-confidence {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.duplicate-bookmarks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.duplicate-bookmark {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.duplicate-bookmark.primary {
+  border-color: var(--success-color);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.duplicate-bookmark.secondary {
+  border-color: var(--warning-color);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.duplicate-bookmark-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.duplicate-bookmark-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.duplicate-bookmark-url {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.duplicate-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.keep-btn, .remove-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.keep-btn {
+  background: var(--success-color);
+  color: white;
+}
+
+.keep-btn:hover {
+  background: #16a34a;
+}
+
+.remove-btn {
+  background: var(--danger-color);
+  color: white;
+}
+
+.remove-btn:hover {
+  background: #dc2626;
+}
+
+/* Cleanup List */
+.cleanup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cleanup-suggestion {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.cleanup-type {
+  background: var(--info-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.cleanup-description {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.cleanup-bookmarks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.cleanup-bookmark {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.cleanup-bookmark-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.cleanup-bookmark-issue {
+  color: var(--danger-color);
+  font-size: 11px;
+}
+
+/* Priority Tags */
+.priority-tag {
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.priority-tag.high {
+  background: var(--danger-color);
+  color: white;
+}
+
+.priority-tag.normal {
+  background: var(--info-color);
+  color: white;
+}
+
+.priority-tag.low {
+  background: var(--text-secondary);
+  color: white;
+}
+
+/* Smart Tags */
+.smart-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.smart-tag {
+  background: var(--primary-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.smart-tag.category {
+  background: var(--success-color);
+}
+
+.smart-tag.tech {
+  background: var(--info-color);
+}
+
+.smart-tag.content-type {
+  background: var(--warning-color);
+  color: var(--text-primary);
+}
+
+/* Enhanced bookmark items with smart features */
+.bookmark-item.enhanced {
+  position: relative;
+}
+
+.bookmark-item.enhanced::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary-color);
+  border-radius: 0 2px 2px 0;
+}
+
+.bookmark-item.high-priority::before {
+  background: var(--danger-color);
+}
+
+.bookmark-item.low-priority::before {
+  background: var(--text-secondary);
+}
+
+/* Animation for updated counters */
+.counter-number.updated {
+  animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); color: var(--primary-color); }
+  100% { transform: scale(1); }
+}
+
+/* Completion notification */
+.completion-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--success-color);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+  max-width: 300px;
+}
+
+.completion-notification.error {
+  background: var(--danger-color);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Enhanced visual elements */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary-color);
+}
+
+.stat-card.working::before {
+  background: var(--success-color);
+}
+
+.stat-card.issues::before {
+  background: var(--warning-color);
+}
+
+.stat-card.protected::before {
+  background: var(--info-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .folder-suggestion-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .folder-stats {
+    align-self: flex-end;
+  }
+  
+  .duplicate-bookmark {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .duplicate-actions {
+    align-self: flex-end;
+  }
 } 

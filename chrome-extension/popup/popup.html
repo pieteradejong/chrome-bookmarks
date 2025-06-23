@@ -29,6 +29,12 @@
             Start Scan
           </button>
           
+          <!-- New Organization Button -->
+          <button id="organize-btn" class="secondary-btn" style="margin-top: 12px;">
+            <span class="btn-icon">🎯</span>
+            Smart Organization
+          </button>
+          
           <!-- Debug Console -->
           <div class="debug-console" id="debug-console" style="display: none;">
             <h4>Debug Log:</h4>
@@ -46,6 +52,24 @@
             <span class="stat-number" id="last-scan">Never</span>
             <span class="stat-label">Last Scan</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Organization State -->
+      <div id="organization-state" class="state" style="display: none;">
+        <div class="organization">
+          <div class="spinner"></div>
+          <h3>Analyzing Your Bookmarks...</h3>
+          <p id="organization-status">Preparing smart organization...</p>
+          
+          <div class="organization-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" id="organization-progress-fill"></div>
+            </div>
+            <span id="organization-progress-text">0%</span>
+          </div>
+          
+          <button id="cancel-organization-btn" class="secondary-btn">Cancel</button>
         </div>
       </div>
 
@@ -156,6 +180,7 @@
           <button class="tab-btn active" data-category="issues">Issues</button>
           <button class="tab-btn" data-category="protected">Protected</button>
           <button class="tab-btn" data-category="working">Working</button>
+          <button class="tab-btn" data-category="organization">Organization</button>
         </div>
 
         <!-- Category Content -->
@@ -219,6 +244,49 @@
               <div class="bookmark-list" id="working-list"></div>
             </div>
           </div>
+
+          <!-- New Organization Tab -->
+          <div id="organization-tab" class="tab-content">
+            <!-- Folder Suggestions -->
+            <div class="category-section">
+              <div class="section-header">
+                <h3>📁 Smart Folder Suggestions</h3>
+                <span class="count" id="folder-suggestions-count">0</span>
+              </div>
+              <p class="section-description">AI-powered organization recommendations</p>
+              <div id="folder-suggestions-list" class="suggestions-list"></div>
+            </div>
+
+            <!-- Duplicates -->
+            <div class="category-section">
+              <div class="section-header">
+                <h3>🔄 Duplicate Detection</h3>
+                <span class="count" id="duplicates-count">0</span>
+              </div>
+              <p class="section-description">Found potential duplicate bookmarks</p>
+              <div id="duplicates-list" class="duplicates-list"></div>
+            </div>
+
+            <!-- Priority Recommendations -->
+            <div class="category-section">
+              <div class="section-header">
+                <h3>⭐ Priority Bookmarks</h3>
+                <span class="count" id="priority-count">0</span>
+              </div>
+              <p class="section-description">Most important bookmarks to keep organized</p>
+              <div id="priority-list" class="bookmark-list"></div>
+            </div>
+
+            <!-- Cleanup Suggestions -->
+            <div class="category-section">
+              <div class="section-header">
+                <h3>🧹 Cleanup Suggestions</h3>
+                <span class="count" id="cleanup-count">0</span>
+              </div>
+              <p class="section-description">Bookmarks that could use attention</p>
+              <div id="cleanup-list" class="cleanup-list"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Bulk Actions -->
@@ -231,12 +299,17 @@
             <span class="btn-icon">🗑️</span>
             Delete Selected
           </button>
+          <button id="apply-organization-btn" class="primary-btn" style="display: none;">
+            <span class="btn-icon">🎯</span>
+            Apply Organization
+          </button>
         </div>
       </div>
     </main>
   </div>
 
   <!-- Scripts -->
+  <script src="../utils/smart-tagger.js"></script>
   <script src="../utils/bookmark-checker.js"></script>
   <script src="popup.js"></script>
 </body>

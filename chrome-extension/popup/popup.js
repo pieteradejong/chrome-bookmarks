@@ -4,8 +4,10 @@
 class PopupController {
   constructor() {
     this.bookmarkChecker = new BookmarkChecker();
+    this.smartTagger = new SmartTagger();
     this.currentScan = null;
     this.scanResults = null;
+    this.organizationResults = null;
     this.selectedBookmarks = new Set();
     
     this.initializeUI();
@@ -26,6 +28,14 @@ class PopupController {
       
       this.startScan();
     });
+    
+    // New organization button
+    document.getElementById('organize-btn').addEventListener('click', () => {
+      console.log('🎯 Smart Organization button clicked');
+      this.debugLog('Smart Organization button clicked', 'info');
+      this.startOrganization();
+    });
+    
     document.getElementById('settings-btn').addEventListener('click', () => this.openSettings());
     
     // Debug toggle
@@ -34,10 +44,14 @@ class PopupController {
     // Scanning state buttons
     document.getElementById('cancel-scan-btn').addEventListener('click', () => this.cancelScan());
     
+    // Organization state buttons
+    document.getElementById('cancel-organization-btn').addEventListener('click', () => this.cancelOrganization());
+    
     // Results state buttons
     document.getElementById('rescan-btn').addEventListener('click', () => this.startScan());
     document.getElementById('export-btn').addEventListener('click', () => this.exportResults());
     document.getElementById('bulk-delete-btn').addEventListener('click', () => this.bulkDelete());
+    document.getElementById('apply-organization-btn').addEventListener('click', () => this.applyOrganization());
     
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -72,7 +86,7 @@ class PopupController {
       welcomeText.textContent = `Found ${bookmarkCount} bookmarks. Find broken links, duplicates, and unused bookmarks`;
       
       // Load stored scan data
-      const data = await chrome.storage.local.get(['lastScan', 'scanResults', 'totalBookmarks']);
+      const data = await chrome.storage.local.get(['lastScan', 'scanResults', 'organizationResults', 'totalBookmarks']);
       
       if (data.lastScan) {
         const lastScanDate = new Date(data.lastScan);
@@ -83,6 +97,10 @@ class PopupController {
         this.scanResults = data.scanResults;
         // Show a "View Last Results" button if we have previous results
         this.showLastResultsOption();
+      }
+
+      if (data.organizationResults) {
+        this.organizationResults = data.organizationResults;
       }
       
       console.log(`✅ Loaded: ${bookmarkCount} bookmarks found`);
@@ -372,7 +390,7 @@ class PopupController {
   /**
    * Show completion notification
    */
-  showCompletionNotification(scanResults, error = null) {
+  showCompletionNotification(scanResults, error = null, source = 'scan') {
     this.stopElapsedTimeCounter();
     
     // Chrome notification
@@ -479,43 +497,395 @@ class PopupController {
    * Show scan results
    */
   showResults() {
-    if (!this.scanResults) return;
+    if (!this.scanResults && !this.organizationResults) return;
 
     this.showState('results');
     
-    const { categories } = this.scanResults;
+    // Update health scan results if available
+    if (this.scanResults) {
+      const { categories } = this.scanResults;
+      
+      // Update summary stats
+      const workingCount = categories.working.length;
+      const protectedCount = categories['bot-protected'].length + categories['login-required'].length;
+      const issuesCount = categories['connection-error'].length + 
+                         categories.timeout.length + 
+                         categories.unknown.length + 
+                         categories['check-failed'].length;
+
+      document.getElementById('working-count').textContent = workingCount;
+      document.getElementById('protected-count').textContent = protectedCount;
+      document.getElementById('issues-count').textContent = issuesCount;
+
+      // Update category counts and populate lists
+      this.updateCategoryCount('connection-error', categories['connection-error'].length);
+      this.updateCategoryCount('timeout', categories.timeout.length);
+      this.updateCategoryCount('unknown', categories.unknown.length);
+      this.updateCategoryCount('bot-protected', categories['bot-protected'].length);
+      this.updateCategoryCount('login-required', categories['login-required'].length);
+      this.updateCategoryCount('working-links', categories.working.length);
+
+      // Populate bookmark lists
+      this.populateBookmarkList('connection-error-list', categories['connection-error']);
+      this.populateBookmarkList('timeout-list', categories.timeout);
+      this.populateBookmarkList('unknown-list', categories.unknown);
+      this.populateBookmarkList('bot-protected-list', categories['bot-protected']);
+      this.populateBookmarkList('login-required-list', categories['login-required']);
+      this.populateBookmarkList('working-list', categories.working);
+    }
+
+    // Update organization results if available
+    if (this.organizationResults) {
+      this.populateOrganizationTab();
+      
+      // Show apply organization button
+      document.getElementById('apply-organization-btn').style.display = 'inline-flex';
+    }
+  }
+
+  /**
+   * Populate the organization tab with smart recommendations
+   */
+  populateOrganizationTab() {
+    if (!this.organizationResults) return;
+
+    const { recommendations } = this.organizationResults;
+
+    // Populate folder suggestions
+    this.populateFolderSuggestions(recommendations.folders);
     
-    // Update summary stats
-    const workingCount = categories.working.length;
-    const protectedCount = categories['bot-protected'].length + categories['login-required'].length;
-    const issuesCount = categories['connection-error'].length + 
-                       categories.timeout.length + 
-                       categories.unknown.length + 
-                       categories['check-failed'].length;
+    // Populate duplicates
+    this.populateDuplicates(recommendations.duplicates);
+    
+    // Populate priority recommendations
+    this.populatePriorityRecommendations(recommendations.priority);
+    
+    // Populate cleanup suggestions
+    this.populateCleanupSuggestions(recommendations.cleanup);
+  }
 
-    document.getElementById('working-count').textContent = workingCount;
-    document.getElementById('protected-count').textContent = protectedCount;
-    document.getElementById('issues-count').textContent = issuesCount;
+  /**
+   * Populate folder suggestions
+   */
+  populateFolderSuggestions(folderSuggestions) {
+    const container = document.getElementById('folder-suggestions-list');
+    const countElement = document.getElementById('folder-suggestions-count');
+    
+    countElement.textContent = folderSuggestions.length;
+    container.innerHTML = '';
 
-    // Update category counts
-    this.updateCategoryCount('connection-error', categories['connection-error'].length);
-    this.updateCategoryCount('timeout', categories.timeout.length);
-    this.updateCategoryCount('unknown', categories.unknown.length);
-    this.updateCategoryCount('bot-protected', categories['bot-protected'].length);
-    this.updateCategoryCount('login-required', categories['login-required'].length);
-    this.updateCategoryCount('working-links', categories.working.length);
+    if (folderSuggestions.length === 0) {
+      container.innerHTML = '<p class="empty-state">No folder suggestions available</p>';
+      return;
+    }
 
-    // Populate bookmark lists
-    this.populateBookmarkList('connection-error-list', categories['connection-error']);
-    this.populateBookmarkList('timeout-list', categories.timeout);
-    this.populateBookmarkList('unknown-list', categories.unknown);
-    this.populateBookmarkList('bot-protected-list', categories['bot-protected']);
-    this.populateBookmarkList('login-required-list', categories['login-required']);
-    this.populateBookmarkList('working-list', categories.working);
+    folderSuggestions.forEach((suggestion, index) => {
+      const suggestionElement = document.createElement('div');
+      suggestionElement.className = 'folder-suggestion';
+      
+      const confidenceClass = suggestion.avgConfidence > 0.7 ? 'high' : 
+                             suggestion.avgConfidence > 0.4 ? 'medium' : 'low';
+      
+      suggestionElement.innerHTML = `
+        <div class="folder-suggestion-header">
+          <div class="folder-name">${suggestion.name}</div>
+          <div class="folder-stats">
+            <span>${suggestion.bookmarks.length} bookmarks</span>
+            <span class="confidence-score ${confidenceClass}">
+              ${Math.round(suggestion.avgConfidence * 100)}%
+            </span>
+          </div>
+        </div>
+        <div class="folder-preview">
+          <div class="preview-bookmarks">
+            ${suggestion.bookmarks.slice(0, 5).map(bookmark => 
+              `<span class="preview-bookmark" title="${bookmark.title}">${bookmark.title}</span>`
+            ).join('')}
+            ${suggestion.bookmarks.length > 5 ? `<span class="preview-bookmark">+${suggestion.bookmarks.length - 5} more</span>` : ''}
+          </div>
+        </div>
+        <div class="folder-actions">
+          <button class="create-folder-btn" data-suggestion-index="${index}">
+            Create Folder
+          </button>
+          <button class="preview-folder-btn" data-suggestion-index="${index}">
+            Preview
+          </button>
+        </div>
+      `;
 
-    // Show bulk delete button if there are problematic bookmarks
-    if (issuesCount > 0) {
-      document.getElementById('bulk-delete-btn').style.display = 'flex';
+      // Add event listeners
+      const createBtn = suggestionElement.querySelector('.create-folder-btn');
+      const previewBtn = suggestionElement.querySelector('.preview-folder-btn');
+      
+      createBtn.addEventListener('click', () => this.createFolderFromSuggestion(suggestion));
+      previewBtn.addEventListener('click', () => this.previewFolderSuggestion(suggestion));
+
+      container.appendChild(suggestionElement);
+    });
+  }
+
+  /**
+   * Populate duplicates section
+   */
+  populateDuplicates(duplicates) {
+    const container = document.getElementById('duplicates-list');
+    const countElement = document.getElementById('duplicates-count');
+    
+    countElement.textContent = duplicates.length;
+    container.innerHTML = '';
+
+    if (duplicates.length === 0) {
+      container.innerHTML = '<p class="empty-state">No duplicate bookmarks found</p>';
+      return;
+    }
+
+    duplicates.forEach((duplicate, index) => {
+      const duplicateElement = document.createElement('div');
+      duplicateElement.className = 'duplicate-group';
+      
+      duplicateElement.innerHTML = `
+        <div class="duplicate-header">
+          <span class="duplicate-type">${duplicate.type.replace('-', ' ')}</span>
+          <span class="duplicate-confidence">${Math.round(duplicate.confidence * 100)}% match</span>
+        </div>
+        <div class="duplicate-bookmarks">
+          ${duplicate.bookmarks.map((bookmark, bookmarkIndex) => `
+            <div class="duplicate-bookmark ${bookmarkIndex === 0 ? 'primary' : 'secondary'}">
+              <div class="duplicate-bookmark-info">
+                <div class="duplicate-bookmark-title">${bookmark.title}</div>
+                <div class="duplicate-bookmark-url">${bookmark.url}</div>
+              </div>
+              <div class="duplicate-actions">
+                <button class="keep-btn" data-duplicate-index="${index}" data-bookmark-index="${bookmarkIndex}">
+                  Keep
+                </button>
+                <button class="remove-btn" data-duplicate-index="${index}" data-bookmark-index="${bookmarkIndex}">
+                  Remove
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      // Add event listeners for duplicate actions
+      duplicateElement.querySelectorAll('.keep-btn, .remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const duplicateIndex = e.target.dataset.duplicateIndex;
+          const bookmarkIndex = e.target.dataset.bookmarkIndex;
+          const action = e.target.classList.contains('keep-btn') ? 'keep' : 'remove';
+          this.handleDuplicateAction(duplicateIndex, bookmarkIndex, action);
+        });
+      });
+
+      container.appendChild(duplicateElement);
+    });
+  }
+
+  /**
+   * Populate priority recommendations
+   */
+  populatePriorityRecommendations(priorityRecs) {
+    const container = document.getElementById('priority-list');
+    const countElement = document.getElementById('priority-count');
+    
+    const highPriorityBookmarks = priorityRecs.high || [];
+    countElement.textContent = highPriorityBookmarks.length;
+    container.innerHTML = '';
+
+    if (highPriorityBookmarks.length === 0) {
+      container.innerHTML = '<p class="empty-state">No high-priority bookmarks identified</p>';
+      return;
+    }
+
+    highPriorityBookmarks.forEach(bookmark => {
+      const bookmarkElement = this.createEnhancedBookmarkItem(bookmark);
+      container.appendChild(bookmarkElement);
+    });
+  }
+
+  /**
+   * Populate cleanup suggestions
+   */
+  populateCleanupSuggestions(cleanupSuggestions) {
+    const container = document.getElementById('cleanup-list');
+    const countElement = document.getElementById('cleanup-count');
+    
+    const totalCleanupItems = cleanupSuggestions.reduce((sum, suggestion) => sum + suggestion.count, 0);
+    countElement.textContent = totalCleanupItems;
+    container.innerHTML = '';
+
+    if (cleanupSuggestions.length === 0) {
+      container.innerHTML = '<p class="empty-state">No cleanup suggestions available</p>';
+      return;
+    }
+
+    cleanupSuggestions.forEach(suggestion => {
+      const suggestionElement = document.createElement('div');
+      suggestionElement.className = 'cleanup-suggestion';
+      
+      suggestionElement.innerHTML = `
+        <span class="cleanup-type">${suggestion.type.replace('-', ' ')}</span>
+        <div class="cleanup-description">${suggestion.suggestion}</div>
+        <div class="cleanup-bookmarks">
+          ${suggestion.bookmarks.slice(0, 10).map(bookmark => `
+            <div class="cleanup-bookmark">
+              <div class="cleanup-bookmark-title">${bookmark.title || 'Untitled'}</div>
+              <div class="cleanup-bookmark-issue">Issue: ${this.getCleanupIssueDescription(suggestion.type, bookmark)}</div>
+            </div>
+          `).join('')}
+          ${suggestion.bookmarks.length > 10 ? `<div class="cleanup-bookmark">... and ${suggestion.bookmarks.length - 10} more</div>` : ''}
+        </div>
+      `;
+
+      container.appendChild(suggestionElement);
+    });
+  }
+
+  /**
+   * Create enhanced bookmark item with smart tags
+   */
+  createEnhancedBookmarkItem(bookmark) {
+    const analysis = this.smartTagger.analyzeBookmark(bookmark);
+    const bookmarkElement = this.createBookmarkItem(bookmark);
+    
+    // Add enhanced class and priority
+    bookmarkElement.classList.add('enhanced');
+    if (analysis.priority === 'high') {
+      bookmarkElement.classList.add('high-priority');
+    } else if (analysis.priority === 'low') {
+      bookmarkElement.classList.add('low-priority');
+    }
+    
+    // Add priority tag
+    const priorityTag = document.createElement('span');
+    priorityTag.className = `priority-tag ${analysis.priority}`;
+    priorityTag.textContent = analysis.priority;
+    bookmarkElement.appendChild(priorityTag);
+    
+    // Add smart tags
+    if (analysis.tags.length > 0) {
+      const tagsContainer = document.createElement('div');
+      tagsContainer.className = 'smart-tags';
+      
+      analysis.tags.slice(0, 5).forEach(tag => {
+        const tagElement = document.createElement('span');
+        tagElement.className = 'smart-tag';
+        
+        // Classify tag type
+        if (analysis.categories.includes(tag)) {
+          tagElement.classList.add('category');
+        } else if (['javascript', 'python', 'react', 'vue', 'angular'].includes(tag)) {
+          tagElement.classList.add('tech');
+        } else if (tag === analysis.contentType) {
+          tagElement.classList.add('content-type');
+        }
+        
+        tagElement.textContent = tag;
+        tagsContainer.appendChild(tagElement);
+      });
+      
+      bookmarkElement.appendChild(tagsContainer);
+    }
+    
+    return bookmarkElement;
+  }
+
+  /**
+   * Get cleanup issue description
+   */
+  getCleanupIssueDescription(type, bookmark) {
+    switch (type) {
+      case 'generic-titles':
+        return 'Generic or missing title';
+      default:
+        return 'Needs attention';
+    }
+  }
+
+  /**
+   * Handle duplicate action (keep/remove)
+   */
+  async handleDuplicateAction(duplicateIndex, bookmarkIndex, action) {
+    try {
+      const duplicate = this.organizationResults.recommendations.duplicates[duplicateIndex];
+      const bookmark = duplicate.bookmarks[bookmarkIndex];
+      
+      if (action === 'remove') {
+        await this.deleteBookmark(bookmark.id, bookmark.title);
+        
+        // Remove from UI
+        const duplicateElement = document.querySelector(`[data-duplicate-index="${duplicateIndex}"]`).closest('.duplicate-group');
+        duplicateElement.style.opacity = '0.5';
+        
+        this.showNotification(`Removed duplicate: ${bookmark.title}`, 'success');
+      } else {
+        this.showNotification(`Keeping: ${bookmark.title}`, 'info');
+      }
+    } catch (error) {
+      this.showNotification(`Error handling duplicate: ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * Create folder from suggestion
+   */
+  async createFolderFromSuggestion(suggestion) {
+    try {
+      // Create the folder in Chrome bookmarks
+      const folder = await chrome.bookmarks.create({
+        title: suggestion.name,
+        parentId: '1' // Bookmarks bar
+      });
+      
+      // Move bookmarks to the new folder
+      for (const bookmark of suggestion.bookmarks) {
+        await chrome.bookmarks.move(bookmark.id, { parentId: folder.id });
+      }
+      
+      this.showNotification(`Created folder "${suggestion.name}" with ${suggestion.bookmarks.length} bookmarks`, 'success');
+      
+      // Refresh the organization analysis
+      setTimeout(() => this.startOrganization(), 1000);
+      
+    } catch (error) {
+      this.showNotification(`Error creating folder: ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * Preview folder suggestion
+   */
+  previewFolderSuggestion(suggestion) {
+    // Create a modal or expanded view showing all bookmarks in the suggestion
+    alert(`Folder: ${suggestion.name}\n\nBookmarks:\n${suggestion.bookmarks.map(b => `• ${b.title}`).join('\n')}`);
+  }
+
+  /**
+   * Apply organization recommendations
+   */
+  async applyOrganization() {
+    if (!this.organizationResults) return;
+    
+    const confirmed = confirm('Apply all organization recommendations? This will create folders and organize your bookmarks.');
+    if (!confirmed) return;
+    
+    try {
+      const { recommendations } = this.organizationResults;
+      
+      // Create top folder suggestions
+      const topSuggestions = recommendations.folders.slice(0, 5);
+      
+      for (const suggestion of topSuggestions) {
+        await this.createFolderFromSuggestion(suggestion);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+      }
+      
+      this.showNotification(`Applied organization recommendations!`, 'success');
+      
+    } catch (error) {
+      this.showNotification(`Error applying organization: ${error.message}`, 'error');
     }
   }
 
@@ -869,9 +1239,91 @@ class PopupController {
       toggleBtn.textContent = 'Show Debug';
     }
   }
+
+  /**
+   * Start smart organization analysis
+   */
+  async startOrganization() {
+    try {
+      console.log('🎯 Starting smart organization...');
+      this.debugLog('Starting smart organization...', 'info');
+      
+      this.showState('organization');
+      
+      // Update status
+      document.getElementById('organization-status').textContent = 'Loading bookmarks...';
+      document.getElementById('organization-progress-fill').style.width = '10%';
+      document.getElementById('organization-progress-text').textContent = '10%';
+      
+      // Get all bookmarks
+      const bookmarks = await this.bookmarkChecker.getAllBookmarks();
+      console.log(`📚 Analyzing ${bookmarks.length} bookmarks...`);
+      
+      // Update progress
+      document.getElementById('organization-status').textContent = 'Analyzing bookmark patterns...';
+      document.getElementById('organization-progress-fill').style.width = '30%';
+      document.getElementById('organization-progress-text').textContent = '30%';
+      
+      // Simulate processing time for better UX
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Generate organization recommendations
+      document.getElementById('organization-status').textContent = 'Generating smart recommendations...';
+      document.getElementById('organization-progress-fill').style.width = '60%';
+      document.getElementById('organization-progress-text').textContent = '60%';
+      
+      const recommendations = this.smartTagger.getOrganizationRecommendations(bookmarks);
+      
+      // Update progress
+      document.getElementById('organization-status').textContent = 'Finalizing analysis...';
+      document.getElementById('organization-progress-fill').style.width = '90%';
+      document.getElementById('organization-progress-text').textContent = '90%';
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Store results
+      this.organizationResults = {
+        timestamp: Date.now(),
+        totalAnalyzed: bookmarks.length,
+        recommendations: recommendations
+      };
+      
+      // Save to storage
+      await chrome.storage.local.set({
+        organizationResults: this.organizationResults
+      });
+      
+      // Complete
+      document.getElementById('organization-progress-fill').style.width = '100%';
+      document.getElementById('organization-progress-text').textContent = '100%';
+      
+      console.log('✅ Organization analysis complete!');
+      
+      // Show results with organization tab active
+      this.showResults();
+      this.switchTab('organization');
+      
+      // Show completion notification
+      this.showCompletionNotification(null, null, 'organization');
+      
+    } catch (error) {
+      console.error('❌ Organization error:', error);
+      this.showError(`Organization failed: ${error.message}`);
+      this.showState('initial');
+    }
+  }
+
+  /**
+   * Cancel organization analysis
+   */
+  cancelOrganization() {
+    console.log('Organization cancelled');
+    this.showState('initial');
+  }
 }
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   new PopupController();
+}); 
 }); 
