@@ -2,510 +2,243 @@
 
 [![pytest](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pieteradejong/chrome-bookmarks/actions/workflows/ci.yml)
 
-A personal tool for managing and cleaning up Chrome bookmarks, featuring both a command-line interface and a local web interface. The project helps detect duplicate bookmarks, broken links, and provides insights into bookmark usage patterns.
+A comprehensive Chrome extension for managing and cleaning up Chrome bookmarks through intelligent automation and smart categorization. The extension provides advanced bookmark health checking, duplicate detection, and automated organization directly within the browser.
 
-## Motivation
+## 🎯 Project Focus
 
-This project was created to help manage and analyze Chrome bookmarks by:
-- Detecting duplicate bookmarks and broken links
-- Analyzing bookmark usage patterns
-- Providing a clean interface for bookmark management
-- Maintaining privacy through local-only operation
+This project has transitioned to a **Chrome extension-focused approach** for better user experience, simplified distribution, and commercial potential through the Chrome Web Store.
 
-## Features
+### Why Chrome Extension?
+- **Native Integration**: Direct access to Chrome bookmarks API
+- **Better UX**: Seamless operation within the browser
+- **Simplified Distribution**: Single Chrome Web Store listing
+- **Commercial Viability**: Direct monetization potential
+- **Privacy Assurance**: All processing happens locally
 
-### Phase 1 (CLI) - Current Focus
-- Clean and readable command line output of bookmarks
-- Basic bookmark management operations:
-  - List bookmarks in tree or flat format
-  - View bookmark statistics
-  - Find unvisited bookmarks
-  - Identify duplicate URLs
-  - Analyze bookmark usage patterns
-  - Sort by date added/last used
-  - Filter by bookmark type (PDF, video, etc.)
-  - Detect and manage broken links:
-    - Smart HEAD request validation with minimal false positives
-    - Intelligent categorization of link status:
-      - **Broken**: 404 Not Found, 410 Gone, DNS/connection errors
-      - **Login Required**: 401 Unauthorized, 403 Forbidden, 999 Bot Blocked
-      - **Available**: 200 OK, 301/302 Redirects
-    - Conservative approach: only marks links as broken for definitive failures
-    - Handles login-protected sites (LeetCode, LinkedIn, Twitter) correctly
-    - Multi-layer caching for performance (memory + SQLite)
-    - Persistent cache across application restarts
+## 🚀 Features
 
-### Phase 2 (Web Interface - Current)
-- Visual display of bookmarks with:
-  - Title and description
-  - Last visited timestamp
-  - Basic bookmark statistics
-      - Smart link validation and management:
-      - Visual status categorization (Broken, Login Required, Available)
-      - Detailed URL check information with status codes
-      - Conservative broken link detection (minimal false positives)
-      - Login/paywall protected bookmark identification
-      - Cache statistics and management
-      - Real-time status updates
-- Local-only deployment
-- Modern, clean UI for bookmark management
+### ✅ Core Features (Implemented)
+- **Smart Bookmark Health Checking**: Intelligent URL validation with minimal false positives
+- **Background Scanning**: Automated scheduled bookmark health checks
+- **Intelligent Categorization**: Distinguishes between broken, login-required, and bot-protected links
+- **Real-time Monitoring**: Immediate detection of new bookmark issues
+- **Badge Notifications**: Visual indicators for bookmark problems
+- **User-friendly Interface**: Clean popup and options page
 
-## Architecture
+### 🔄 Advanced Features (In Development)
+- **Duplicate Detection**: Find and manage duplicate bookmarks
+- **Smart Organization**: AI-powered bookmark categorization
+- **Bulk Operations**: Multi-select and batch bookmark management
+- **Advanced Search**: Full-text search with filters
+- **Export/Import**: Multiple format support
+- **Analytics Dashboard**: Comprehensive bookmark insights
 
-The project follows a clean architecture pattern with clear separation of concerns:
+## 🏗️ Architecture
 
-### Core Components
-
-1. **Data Layer** (`app/bookmarks_data.py`)
-   - `BookmarkStore` class encapsulates all bookmark data operations
-   - Handles loading, parsing, and querying bookmark data
-   - Maintains internal state of bookmarks and folders
-   - Provides methods for data analysis and statistics
-   - Implements smart URL validation with advanced caching:
-     - **Conservative validation**: Only marks as broken for definitive failures
-     - **Smart categorization**: Distinguishes between broken, login-required, and available
-     - **HEAD-first optimization**: 10x faster than traditional GET requests
-     - **Multi-layer caching**: Memory + SQLite for optimal performance
-     - **Login-aware**: Correctly handles protected sites (403, 401, 999 status codes)
-     - **Status code mapping**:
-       - Broken: 404 Not Found, 410 Gone, DNS/connection errors
-       - Login Required: 401 Unauthorized, 403 Forbidden, 999 Bot Blocked, 429 Rate Limited
-       - Available: 200 OK, 301/302/307 Redirects, 500+ Server Errors
-     - Persistent cache across application restarts
-     - Batch processing with rate limiting for performance
-
-2. **Models** (`app/models.py`)
-   - Internal data models using Python dataclasses:
-     - `URL`: Represents parsed URL components
-     - `Bookmark`: Represents a bookmark entry
-     - `Folder`: Represents a bookmark folder
-     - `ErrorDetails`: Represents URL check results
-   - API models using Pydantic:
-     - Response models for API endpoints
-     - Input validation and serialization
-     - Type safety and documentation
-
-3. **API Layer** (`app/api.py`)
-   - FastAPI router for REST endpoints
-   - Uses dependency injection for `BookmarkStore`
-   - Implements in-memory caching for performance
-   - Endpoints:
-     - `/`: Basic API information
-     - `/health`: Health check
-     - `/bookmarks`: Get bookmark tree
-     - `/unvisited`: List unvisited bookmarks
-     - `/stats`: Get bookmark statistics
-     - `/broken`: Get broken bookmarks (cache-only, fast)
-     - `/broken/cache`: Cache statistics and management
-     - `/validate-broken`: Validate broken bookmarks with HEAD requests
-       - Smart categorization: broken vs login-required vs available
-       - Conservative validation with minimal false positives
-       - Updates database with validation results
-
-4. **CLI Interface** (`app/cli.py`)
-   - Command-line interface using argparse
-   - Shares core functionality with API
-   - Commands:
-     - `list`: Display bookmarks (tree/flat format)
-     - `stats`: Show bookmark statistics
-     - `unvisited`: List unvisited bookmarks
-     - `broken`: Check and manage broken links
-
-5. **Frontend** (`frontend/`)
-   - React/Vite application with TypeScript
-   - Modern UI components using Mantine
-   - Features:
-     - Tabbed interface for different bookmark views
-     - Real-time cache statistics
-     - Visual error categorization
-     - Detailed URL check information
-     - Cache management controls
-   - State management with React Query
-   - Local-only operation
-
-### Design Decisions
-
-1. **Separation of Concerns**
-   - Data handling is isolated in `BookmarkStore`
-   - API and CLI share the same core functionality
-   - Models separate internal and API representations
-   - Frontend components are modular and reusable
-
-2. **Type Safety**
-   - Extensive use of type hints (Python 3.9+)
-   - Pydantic models for API validation
-   - TypeScript for frontend type safety
-   - Dataclasses for internal data structures
-
-3. **State Management**
-   - `BookmarkStore` encapsulates all state
-   - React Query for frontend state management
-   - No global variables
-   - Thread-safe for web server use
-
-4. **Error Handling**
-   - Consistent error handling across layers
-   - Proper logging
-   - User-friendly error messages
-   - Categorized error reporting for broken links
-
-5. **Privacy & Security**
-   - Local-only operation
-   - No external services
-   - No data persistence beyond Chrome's bookmarks file
-   - Secure URL checking with proper SSL validation
-
-6. **Performance Considerations**
-   - Optimized for small to medium bookmark collections (1000s of bookmarks)
-   - In-memory processing for fast retrieval
-   - Efficient URL parsing and validation
-   - Advanced multi-layer caching strategy:
-     - Layer 1: In-memory cache (~0.0001s lookups, 7-day expiry)
-     - Layer 2: SQLite persistent cache (~0.001s lookups, 7-day freshness)
-     - Layer 3: HEAD-first network checks (~0.3s, 10x faster than GET)
-     - Automatic cache population and invalidation
-     - Persistent across application restarts
-   - Batch processing with semaphore-based rate limiting
-   - Use of hash tables for quick lookups
-   - DNS and SSL pre-validation for fastest failure detection
-
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/chrome-bookmarks.git
-   cd chrome-bookmarks
-   ```
-
-2. Run the initialization script:
-   ```bash
-   ./init.sh
-   ```
-
-This will:
-- Create a Python virtual environment
-- Install required dependencies
-- Set up the initial project structure
-- Copy your Chrome bookmarks to the data directory
-
-## Usage
-
-### Command Line Interface
-
-The CLI provides several commands for bookmark management:
-
-```bash
-# List bookmarks in tree format
-python -m app.cli list
-
-# List bookmarks in flat format
-python -m app.cli list --format flat
-
-# Show bookmark statistics
-python -m app.cli stats
-
-# List unvisited bookmarks
-python -m app.cli unvisited
-
-# Use a different Chrome profile
-python -m app.cli --profile "Profile 2" list
+### Chrome Extension Structure
+```
+chrome-extension/
+├── manifest.json              # Extension configuration
+├── background/
+│   └── service-worker.js      # Background processing
+├── popup/
+│   ├── popup.html            # Main popup interface
+│   ├── popup.css
+│   └── popup.js
+├── options/
+│   └── options.html          # Settings and configuration
+├── utils/
+│   └── bookmark-checker.js   # Core bookmark validation
+└── icons/                    # Extension icons
 ```
 
-### Web Interface
+### Smart Link Validation System
+The extension implements intelligent HEAD request validation that minimizes false positives while accurately detecting truly broken links.
 
-Start the local web server:
-```bash
-python -m app.main
-```
+#### Status Code Classification
+| Status Code | Category | Is Broken? | Examples |
+|-------------|----------|------------|----------|
+| **200-299** | Available | ❌ No | Most working sites |
+| **301/302/307** | Available | ❌ No | Redirects (likely to login) |
+| **401** | Login Required | ❌ No | Authentication required |
+| **403** | Login Required | ❌ No | Access forbidden/bot blocked |
+| **404** | **Broken** | ✅ **Yes** | **Page not found** |
+| **410** | **Broken** | ✅ **Yes** | **Page gone/removed** |
+| **429** | Login Required | ❌ No | Rate limited |
+| **500+** | Available | ❌ No | Server error (temporary) |
+| **999** | Login Required | ❌ No | Custom bot blocking |
+| **DNS Error** | **Broken** | ✅ **Yes** | **Invalid domains** |
 
-The API will be available at `http://localhost:8000` with the following endpoints:
+## 📦 Installation
 
-- `GET /`: API information
-- `GET /health`: Health check
-- `GET /bookmarks`: Get bookmark tree
-- `GET /unvisited`: List unvisited bookmarks
-- `GET /stats`: Get bookmark statistics
-- `GET /broken`: Get broken bookmarks (from cache)
-- `GET /broken/cache`: Get cache statistics
-- `POST /broken/check`: Force fresh broken link checks
+### From Chrome Web Store (Coming Soon)
+1. Visit the Chrome Web Store
+2. Search for "Chrome Bookmarks Manager"
+3. Click "Add to Chrome"
 
-API documentation is available at:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+### Developer Installation
+1. Clone this repository
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer mode" in the top right
+4. Click "Load unpacked" and select the `chrome-extension` folder
+5. The extension icon will appear in your toolbar
 
-## Smart Link Validation System
+## 🎮 Usage
 
-The application implements an intelligent HEAD request validation system that minimizes false positives while accurately detecting truly broken links.
+### Basic Health Check
+1. Click the extension icon in your toolbar
+2. Click "Start Scan" to begin checking your bookmarks
+3. Wait for the scan to complete (progress bar shows status)
+4. Review categorized results in the popup
 
-### Validation Philosophy
+### Managing Results
+- **Visit**: Click "Visit" to open a bookmark in a new tab
+- **Delete**: Click "Delete" to remove individual bookmarks
+- **Bulk Delete**: Use "Delete Selected" for multiple problematic bookmarks
+- **Export**: Download scan results as CSV for further analysis
 
-**Conservative Approach**: Only mark links as "broken" when we're certain they don't exist. This prevents false positives from login-protected sites, bot-blocking, or temporary server issues.
+### Scheduled Scans
+1. Click the settings icon (⚙️) in the popup
+2. Enable "Automatic Scanning"
+3. Choose scan frequency (daily, weekly, monthly)
+4. The extension will run background scans and notify you of issues
 
-### Status Code Classification
-
-| Status Code | Category | Is Broken? | Reason | Examples |
-|-------------|----------|------------|---------|-----------|
-| **200-299** | Available | ❌ No | Content accessible | Most working sites |
-| **301/302/307** | Available | ❌ No | Redirects (likely to login) | Google Docs, some articles |
-| **401** | Login Required | ❌ No | Authentication required | Proper auth-protected APIs |
-| **403** | Login Required | ❌ No | Access forbidden/bot blocked | LeetCode, Twitter, LinkedIn |
-| **404** | **Broken** | ✅ **Yes** | **Page not found** | **Truly broken links** |
-| **410** | **Broken** | ✅ **Yes** | **Page gone/removed** | **Intentionally removed** |
-| **429** | Login Required | ❌ No | Rate limited | Too many requests |
-| **500+** | Available | ❌ No | Server error (temporary) | Site exists but has issues |
-| **999** | Login Required | ❌ No | Custom bot blocking | LinkedIn's custom code |
-| **DNS Error** | **Broken** | ✅ **Yes** | **Domain doesn't exist** | **Invalid domains** |
-
-### Real-World Examples
-
-- **LeetCode Problems** (`403 Forbidden`) → **Login Required** ✅ Correct!
-- **LinkedIn Profiles** (`999 Bot Blocked`) → **Login Required** ✅ Correct!
-- **Google Docs** (`302 Redirect`) → **Available** ✅ Correct!
-- **Non-existent pages** (`404 Not Found`) → **Broken** ✅ Correct!
-- **Dead domains** (`DNS Error`) → **Broken** ✅ Correct!
-
-### Benefits
-
-1. **Minimal False Positives**: Login-protected sites aren't marked as broken
-2. **Accurate Detection**: Only truly broken links are flagged
-3. **Fast Performance**: HEAD requests are 10x faster than GET
-4. **Smart Categorization**: Distinguishes between broken, login-required, and available
-
-## Advanced Caching Architecture
-
-The application implements a sophisticated multi-layer caching system for optimal performance:
-
-### Cache Layers
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    URL CHECK REQUEST                        │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│  LAYER 1: IN-MEMORY CACHE (Fastest - ~0.0001s)           │
-│  • Instant lookups                                         │
-│  • 7-day expiry                                           │
-│  • Lost on app restart                                    │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ Cache Miss
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│  LAYER 2: SQLITE CACHE (Fast - ~0.001s)                  │
-│  • Persistent across restarts                             │
-│  • 7-day freshness check                                  │
-│  • URL-level + Bookmark-level caching                     │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ Cache Miss
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│  LAYER 3: NETWORK CHECK (Optimized - ~0.3s)              │
-│  • HEAD-first optimization (10x faster than GET)          │
-│  • DNS + SSL pre-validation                               │
-│  • Results saved to both cache layers                     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Performance Benefits
-
-- **Memory Cache**: 99.9% faster than network requests
-- **SQLite Cache**: Persistent across app restarts, 99.7% faster
-- **HEAD-first Network**: 10x faster than traditional GET requests
-- **Bandwidth Savings**: 99.9% reduction (headers only vs full content)
-- **Smart Fallback**: Automatic GET fallback when HEAD not supported
-
-### Cache Configuration
-
-The cache freshness can be configured via environment variable:
-```bash
-export CACHE_FRESHNESS_HOURS=168  # 7 days (default)
-```
-
-## Chrome Bookmarks Location
-
-Chrome stores bookmarks in a JSON file within your profile directory. The exact location depends on your Chrome profile:
-
-- Default profile: `~/Library/Application Support/Google/Chrome/Default/Bookmarks`
-- Profile 1: `~/Library/Application Support/Google/Chrome/Profile 1/Bookmarks`
-- Profile 2: `~/Library/Application Support/Google/Chrome/Profile 2/Bookmarks`
-
-To find your exact profile path:
-1. Open Chrome
-2. Visit `chrome://version`
-3. Look for the "Profile Path" entry
-4. The Bookmarks file will be in that directory
-
-## Data Structure
-
-Chrome bookmarks are stored in a JSON file with the following structure:
-
-```json
-{
-  "checksum": "string",
-  "roots": {
-    "bookmark_bar": { ... },
-    "other": { ... },
-    "mobile": { ... }
-  },
-  "sync_metadata": "string",
-  "version": 1
-}
-```
-
-Each bookmark or folder object contains:
-```json
-{
-  "date_added": "unix-like timestamp",
-  "date_last_used": "unix-like timestamp",
-  "date_modified": "unix-like timestamp",
-  "guid": "GUID",
-  "id": "integer",
-  "name": "string",
-  "type": "folder|url",
-  "url": "string (for bookmarks only)",
-  "children": [] (for folders only)
-}
-```
-
-## Development
+## 🔧 Development
 
 ### Project Structure
 ```
 chrome-bookmarks/
-├── app/
-│   ├── __init__.py
-│   ├── api.py           # FastAPI routes
-│   ├── bookmarks_data.py # Core bookmark handling
-│   ├── cli.py           # Command-line interface
-│   ├── config.py        # Configuration
-│   ├── main.py          # Application entry
-│   ├── models.py        # Data models
-│   └── test/            # Test directory
-├── data/                # Working directory for bookmark data
-├── init.sh             # Initialization script
-├── README.md
-└── requirements.txt    # Python dependencies
+├── chrome-extension/          # Main extension code
+│   ├── manifest.json
+│   ├── background/
+│   ├── popup/
+│   ├── options/
+│   ├── utils/
+│   └── icons/
+├── archived/                  # Previous architecture components
+├── prd.md                     # Product Requirements Document
+├── README.md                  # This file
+└── TODO.md                    # Development tasks
 ```
 
-### Adding New Features
+### Development Setup
+1. Clone the repository
+2. Navigate to `chrome-extension/`
+3. Load the extension in Chrome developer mode
+4. Make changes and reload the extension
+5. Test functionality in the browser
 
-1. **New Data Operations**
-   - Add methods to `BookmarkStore` in `bookmarks_data.py`
-   - Update models in `models.py` if needed
+### Key Technologies
+- **Manifest V3**: Latest Chrome extension standards
+- **Service Workers**: Background processing
+- **Chrome APIs**: Bookmarks, storage, alarms, notifications
+- **Modern JavaScript**: ES6+ features and modules
+- **CSS3**: Modern styling and animations
 
-2. **New API Endpoints**
-   - Add routes to `api.py`
-   - Define response models in `models.py`
+## 📊 Roadmap
 
-3. **New CLI Commands**
-   - Add subcommands to `cli.py`
-   - Reuse `BookmarkStore` methods
+### Phase 1: Foundation Enhancement (Weeks 1-2)
+- [ ] Refactor bookmark-checker.js with ES6 modules
+- [ ] Implement IndexedDB storage
+- [ ] Add comprehensive error handling
+- [ ] Set up testing framework
 
-### Technical Notes
-- Python 3.9+ required for type hints
-- Focus on maintainability and clean code
-- Local-only operation for privacy
-- No external service dependencies
-- Efficient in-memory processing
+### Phase 2: Core Features (Weeks 3-4)
+- [ ] Duplicate detection and management
+- [ ] Smart bookmark organization
+- [ ] Enhanced validation with favicons
+- [ ] Bulk operations interface
 
-## Roadmap
+### Phase 3: UI Enhancement (Weeks 5-6)
+- [ ] Modern UI framework implementation
+- [ ] Enhanced bookmark display with previews
+- [ ] Comprehensive settings page
+- [ ] Context menu integration
 
-### 1. API Endpoints & Data Processing
+### Phase 4: Advanced Features (Weeks 7-8)
+- [ ] Advanced search and filtering
+- [ ] Automation and scheduling
+- [ ] Export/import functionality
+- [ ] Performance optimization
 
-#### Bookmark Management Endpoints
-- `POST /bookmarks/cleanup` - Endpoint to identify and suggest duplicate bookmarks
-- `POST /bookmarks/archive` - Archive old/unused bookmarks
-- `GET /bookmarks/search` - Search bookmarks with filters (by date, folder, tags)
-- `GET /bookmarks/folders` - Get folder statistics and structure
-- `GET /bookmarks/duplicates` - Find potential duplicate bookmarks
-- `GET /bookmarks/export` - Export bookmarks in different formats (JSON, HTML, CSV)
+### Phase 5: Commercial Features (Weeks 9-10)
+- [ ] Premium features implementation
+- [ ] Chrome Web Store preparation
+- [ ] Monetization setup
+- [ ] Marketing materials
 
-#### Enhanced Statistics
-- `GET /stats/folders` - Detailed folder usage statistics
-- `GET /stats/timeline` - Bookmark creation/usage over time
-- `GET /stats/domains` - Most bookmarked domains and their categories
+### Phase 6: Launch (Weeks 11-12)
+- [ ] Comprehensive testing
+- [ ] User feedback integration
+- [ ] Chrome Web Store submission
+- [ ] Post-launch monitoring
 
-### 2. Data Processing Improvements
-- Implement bookmark categorization using URL patterns or machine learning
-- Add metadata extraction from bookmarked pages (title, description, favicon)
-- Implement bookmark tagging system
-- Add last visited date tracking
-- Implement bookmark health checks (check if URLs are still valid)
-- Add support for bookmark notes/annotations
+## 🤝 Contributing
 
-### 3. UI Improvements (React Frontend)
-- Modern dashboard with:
-  - Visual bookmark tree with collapsible folders
-  - Grid/List view toggle for bookmarks
-  - Drag-and-drop folder organization
-  - Quick search with filters
-  - Tag management interface
-  - Bookmark preview cards with:
-    - Screenshot thumbnails
-    - Website favicons
-    - Last visited date
-    - Visit count
-    - Custom notes
-  - Statistics visualizations:
-    - Folder size distribution
-    - Bookmark creation timeline
-    - Domain distribution
-    - Most visited bookmarks
-  - Dark/Light theme support
-  - Responsive design for different screen sizes
-
-### 4. CLI Improvements
-- Interactive TUI (Text User Interface) for bookmark management
-- Rich terminal output with colors and formatting
-- Export functionality to different formats
-- Batch operations for bookmark management
-- Quick search and filter capabilities
-- Bookmark health check command
-- Duplicate detection and cleanup
-
-### 5. Technical Improvements
-- ✅ **Advanced multi-layer caching system implemented**
-  - In-memory cache for instant lookups
-  - SQLite persistent cache for restart resilience
-  - HEAD-first HTTP optimization for 10x speed improvement
-- ✅ **Comprehensive error handling and categorization**
-- ✅ **Data validation and sanitization**
-- ✅ **Structured logging with configurable levels**
-- Add automated tests
-- Add documentation for API and CLI usage
-
-## Contributing
-
-This is a personal project, but suggestions and improvements are welcome:
+This is a personal project transitioning to commercial development, but suggestions and improvements are welcome:
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Test thoroughly
+5. Submit a pull request
 
-## License
+### Areas for Contribution
+- UI/UX improvements
+- Performance optimizations
+- Additional validation rules
+- Internationalization
+- Accessibility features
+
+## 📈 Success Metrics
+
+### Development Goals
+- **Performance**: <1 second response time for all operations
+- **Scalability**: Support for 10,000+ bookmarks efficiently
+- **Reliability**: <1% error rate in production
+- **Code Coverage**: >90% test coverage
+
+### User Goals
+- **User Adoption**: 1,000+ users within 3 months
+- **User Retention**: >70% 30-day retention
+- **User Satisfaction**: >4.5 stars on Chrome Web Store
+- **Feature Usage**: >80% of users use core features
+
+### Commercial Goals
+- **Conversion Rate**: >5% free to premium conversion
+- **Revenue**: $1,000+ monthly recurring revenue within 6 months
+- **Growth**: 20% month-over-month user growth
+
+## 🔒 Privacy & Security
+
+- **Local Processing**: All bookmark checking happens within the browser
+- **No Data Collection**: Your bookmarks never leave your computer
+- **No External Services**: Direct connections to your bookmarked sites only
+- **Secure Storage**: Results stored locally using Chrome's secure storage API
+- **Transparent Operations**: Open source code for full transparency
+
+## 📄 License
 
 MIT License - see LICENSE file for details
 
-## Research & References
+## 📚 Documentation
 
-- [Chrome Sync's Model API](https://www.chromium.org/developers/design-documents/sync/model-api/)
-- [Chromium's Bookmark Manager](https://chromium.googlesource.com/chromium/src/+/master/chrome/browser/resources/bookmarks/)
+- **PRD**: See `prd.md` for detailed product requirements and roadmap
+- **TODO**: See `TODO.md` for current development tasks
+- **Archived Components**: See `archived/README.md` for previous architecture
 
-## Ensure SQLite Cache Directory and Permissions
+## 🆘 Support
 
-Before running the backend, make sure the `data/` directory exists and has the correct permissions for SQLite to create and write the cache database:
+If you encounter issues or have feature requests:
 
-```bash
-mkdir -p data
-chmod u+rw data
-chmod u+rw data/bookmarks_cache.db  # Only if the file already exists
-```
+1. Check the [Issues](../../issues) page
+2. Create a new issue with detailed information
+3. Include your Chrome version and extension version
 
-If you encounter database errors, you may need to delete the cache file and let the app recreate it:
+## 🙏 Acknowledgments
 
-```bash
-rm data/bookmarks_cache.db
-```
+- Built with modern Chrome Extension APIs
+- Inspired by the need for better bookmark management
+- Thanks to the open-source community for tools and inspiration
+- Special thanks to early users and contributors
 
