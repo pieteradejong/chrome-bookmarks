@@ -19,47 +19,47 @@ class SmartTagger {
         /developer\.mozilla\.org/i, /npmjs\.com/i, /pypi\.org/i, /packagist\.org/i,
         /docs\..*\.com/i, /api\..*\.com/i, /devdocs\.io/i
       ],
-      
+
       // Design & Creative
       design: [
         /dribbble\.com/i, /behance\.net/i, /figma\.com/i, /sketch\.com/i,
         /adobe\.com/i, /canva\.com/i, /unsplash\.com/i, /pexels\.com/i,
         /fonts\.google\.com/i, /fontawesome\.com/i, /coolors\.co/i
       ],
-      
+
       // Learning & Education
       education: [
         /coursera\.org/i, /edx\.org/i, /udemy\.com/i, /khanacademy\.org/i,
         /youtube\.com\/watch/i, /ted\.com/i, /wikipedia\.org/i, /medium\.com/i,
         /towards.*science/i, /freecodecamp\.org/i
       ],
-      
+
       // Productivity & Tools
       productivity: [
         /notion\.so/i, /trello\.com/i, /slack\.com/i, /zoom\.us/i,
         /google\.com\/drive/i, /dropbox\.com/i, /calendly\.com/i,
         /zapier\.com/i, /ifttt\.com/i, /todoist\.com/i
       ],
-      
+
       // News & Articles
       news: [
         /news\.ycombinator\.com/i, /reddit\.com/i, /techcrunch\.com/i,
         /arstechnica\.com/i, /theverge\.com/i, /wired\.com/i,
         /bloomberg\.com/i, /reuters\.com/i, /bbc\.com/i
       ],
-      
+
       // Social Media
       social: [
         /twitter\.com/i, /x\.com/i, /linkedin\.com/i, /facebook\.com/i,
         /instagram\.com/i, /tiktok\.com/i, /discord\.com/i
       ],
-      
+
       // Shopping & E-commerce
       shopping: [
         /amazon\.com/i, /ebay\.com/i, /etsy\.com/i, /shopify\.com/i,
         /stripe\.com/i, /paypal\.com/i, /aliexpress\.com/i
       ],
-      
+
       // Finance & Business
       finance: [
         /bank/i, /finance/i, /invest/i, /crypto/i, /blockchain/i,
@@ -122,12 +122,12 @@ class SmartTagger {
    */
   analyzeUrl(url) {
     const analysis = { categories: [], tags: [] };
-    
+
     try {
       const urlObj = new URL(url);
       const domain = urlObj.hostname.toLowerCase();
       const path = urlObj.pathname.toLowerCase();
-      
+
       // Check against URL patterns
       for (const [category, patterns] of Object.entries(this.urlPatterns)) {
         if (patterns.some(pattern => pattern.test(url))) {
@@ -159,7 +159,7 @@ class SmartTagger {
    */
   analyzeTitle(title) {
     const analysis = { tags: [], contentType: null };
-    
+
     if (!title) return analysis;
 
     const titleLower = title.toLowerCase();
@@ -195,18 +195,18 @@ class SmartTagger {
    */
   determinePriority(bookmark, analysis) {
     // High priority indicators
-    if (analysis.categories.includes('development') && 
+    if (analysis.categories.includes('development') &&
         analysis.tags.includes('documentation')) {
       return 'high';
     }
 
-    if (analysis.tags.includes('tutorial') || 
+    if (analysis.tags.includes('tutorial') ||
         analysis.tags.includes('reference')) {
       return 'high';
     }
 
     // Low priority indicators
-    if (analysis.categories.includes('social') || 
+    if (analysis.categories.includes('social') ||
         analysis.categories.includes('news')) {
       return 'low';
     }
@@ -219,13 +219,13 @@ class SmartTagger {
    */
   calculateConfidence(analysis) {
     let score = 0;
-    
+
     // More categories = higher confidence
     score += analysis.categories.length * 0.3;
-    
+
     // Specific tags = higher confidence
     score += analysis.tags.length * 0.1;
-    
+
     // Content type identified = higher confidence
     if (analysis.contentType !== 'unknown') {
       score += 0.4;
@@ -240,10 +240,10 @@ class SmartTagger {
    */
   generateFolderSuggestions(bookmarks) {
     const suggestions = new Map();
-    
+
     bookmarks.forEach(bookmark => {
       const analysis = this.analyzeBookmark(bookmark);
-      
+
       analysis.categories.forEach(category => {
         if (!suggestions.has(category)) {
           suggestions.set(category, {
@@ -252,7 +252,7 @@ class SmartTagger {
             confidence: 0
           });
         }
-        
+
         const suggestion = suggestions.get(category);
         suggestion.bookmarks.push(bookmark);
         suggestion.confidence += analysis.confidence;
@@ -330,7 +330,7 @@ class SmartTagger {
   getOrganizationRecommendations(bookmarks) {
     const folderSuggestions = this.generateFolderSuggestions(bookmarks);
     const duplicates = this.detectDuplicates(bookmarks);
-    
+
     const recommendations = {
       folders: folderSuggestions,
       duplicates: duplicates,
@@ -346,11 +346,11 @@ class SmartTagger {
    */
   getCleanupRecommendations(bookmarks) {
     const recommendations = [];
-    
+
     // Find bookmarks with generic titles
-    const genericTitles = bookmarks.filter(b => 
-      !b.title || 
-      b.title.length < 5 || 
+    const genericTitles = bookmarks.filter(b =>
+      !b.title ||
+      b.title.length < 5 ||
       b.title.toLowerCase().includes('untitled') ||
       b.title === new URL(b.url).hostname
     );
@@ -391,4 +391,4 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = SmartTagger;
 } else if (typeof window !== 'undefined') {
   window.SmartTagger = SmartTagger;
-} 
+}

@@ -1,0 +1,91 @@
+name: Chrome Extension Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: chrome-extension/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: chrome-extension
+      run: npm ci
+    
+    - name: Run linting
+      working-directory: chrome-extension
+      run: npm run lint
+    
+    - name: Run unit tests
+      working-directory: chrome-extension
+      run: npm test
+    
+    - name: Generate coverage report
+      working-directory: chrome-extension
+      run: npm run test:coverage
+    
+    - name: Upload coverage to Codecov
+      if: github.repository_owner == github.actor || github.event_name == 'pull_request'
+      uses: codecov/codecov-action@v3
+      with:
+        directory: chrome-extension/coverage
+        flags: unittests
+        name: codecov-umbrella
+    
+    - name: Install Playwright Browsers
+      working-directory: chrome-extension
+      run: npx playwright install chromium
+    
+    - name: Run E2E tests
+      working-directory: chrome-extension
+      run: npm run test:e2e
+    
+    - name: Upload Playwright Report
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-report
+        path: chrome-extension/playwright-report/
+        retention-days: 30
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: chrome-extension/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: chrome-extension
+      run: npm ci
+    
+    - name: Run security audit
+      working-directory: chrome-extension
+      run: npm audit --audit-level moderate
+    
+    - name: Check for known vulnerabilities
+      working-directory: chrome-extension
+      run: |
+        if npm audit --audit-level high --json | jq -e '.vulnerabilities | length > 0'; then
+          echo "High severity vulnerabilities found!"
+          npm audit --audit-level high
+          exit 1
+        fi

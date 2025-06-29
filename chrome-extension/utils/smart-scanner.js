@@ -5,9 +5,9 @@ class SmartBookmarkScanner {
   constructor() {
     this.bookmarkChecker = new BookmarkChecker();
     this.scanStrategies = {
-      quick: { limit: 50, timeout: 3000, description: "Recent bookmarks (~30 seconds)" },
-      smart: { limit: 200, timeout: 5000, description: "Priority bookmarks (~2 minutes)" },
-      full: { limit: Infinity, timeout: 5000, description: "All bookmarks (background)" }
+      quick: { limit: 50, timeout: 3000, description: 'Recent bookmarks (~30 seconds)' },
+      smart: { limit: 200, timeout: 5000, description: 'Priority bookmarks (~2 minutes)' },
+      full: { limit: Infinity, timeout: 5000, description: 'All bookmarks (background)' }
     };
   }
 
@@ -17,14 +17,14 @@ class SmartBookmarkScanner {
   async getScanRecommendations() {
     const allBookmarks = await this.bookmarkChecker.getAllBookmarks();
     const count = allBookmarks.length;
-    
+
     const recommendations = {
       bookmarkCount: count,
       estimatedTimes: this.getTimeEstimates(count),
       recommendedStrategy: this.getRecommendedStrategy(count),
       strategies: this.scanStrategies
     };
-    
+
     return recommendations;
   }
 
@@ -34,7 +34,7 @@ class SmartBookmarkScanner {
   getTimeEstimates(count) {
     const concurrent = 15;
     const avgTimePerBookmark = 0.5; // seconds
-    
+
     return {
       quick: Math.min(30, Math.ceil(50 * avgTimePerBookmark / concurrent)),
       smart: Math.min(120, Math.ceil(200 * avgTimePerBookmark / concurrent)),
@@ -72,13 +72,13 @@ class SmartBookmarkScanner {
    */
   async startBackgroundScan(progressCallback) {
     const allBookmarks = await this.bookmarkChecker.getAllBookmarks();
-    
+
     // Process in chunks over time
     const chunkSize = 50;
     const chunks = this.chunkArray(allBookmarks, chunkSize);
-    
+
     let allResults = [];
-    
+
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const chunkResults = await this.scanBookmarks(chunk, 'full', (progress) => {
@@ -91,18 +91,18 @@ class SmartBookmarkScanner {
         };
         progressCallback(overallProgress);
       });
-      
+
       allResults = allResults.concat(chunkResults);
-      
+
       // Save intermediate results
       await this.saveIntermediateResults(allResults, i + 1, chunks.length);
-      
+
       // Small delay between chunks to keep browser responsive
       if (i < chunks.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-    
+
     return allResults;
   }
 
@@ -130,12 +130,12 @@ class SmartBookmarkScanner {
    */
   async getPriorityBookmarks(limit) {
     const allBookmarks = await this.bookmarkChecker.getAllBookmarks();
-    
+
     // Sort by date added (most recent first)
-    const sortedBookmarks = allBookmarks.sort((a, b) => 
+    const sortedBookmarks = allBookmarks.sort((a, b) =>
       (b.dateAdded || 0) - (a.dateAdded || 0)
     );
-    
+
     return sortedBookmarks.slice(0, limit);
   }
 
@@ -144,18 +144,18 @@ class SmartBookmarkScanner {
    */
   async scanBookmarks(bookmarks, strategy, progressCallback) {
     const settings = this.scanStrategies[strategy];
-    
+
     // Temporarily override timeout for this scan
     const originalTimeout = this.bookmarkChecker.constructor.prototype.performUrlCheck;
-    
+
     // Use strategy-specific timeout
     this.bookmarkChecker.timeout = settings.timeout;
-    
+
     const results = await this.bookmarkChecker.checkMultipleBookmarks(
-      bookmarks, 
+      bookmarks,
       progressCallback
     );
-    
+
     return results;
   }
 
@@ -164,7 +164,7 @@ class SmartBookmarkScanner {
    */
   async saveIntermediateResults(results, currentChunk, totalChunks) {
     const categorizedResults = this.bookmarkChecker.categorizeResults(results);
-    
+
     await chrome.storage.local.set({
       scanProgress: {
         completed: results.length,
@@ -216,11 +216,11 @@ class SmartBookmarkScanner {
     const rate = progress.completed / elapsed; // bookmarks per second
     const remaining = progress.total - progress.completed;
     const estimatedSeconds = remaining / rate;
-    
+
     if (estimatedSeconds < 60) {
       return `~${Math.round(estimatedSeconds)} seconds remaining`;
     } else {
       return `~${Math.round(estimatedSeconds / 60)} minutes remaining`;
     }
   }
-} 
+}

@@ -1,0 +1,24 @@
+{
+  "name": "chrome-extension",
+  "version": "1.0.0",
+  "description": "A powerful Chrome extension that helps you find and clean up broken, duplicate, and unused bookmarks automatically.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --forceExit",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --forceExit",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^9.30.0",
+    "jest": "^30.0.3",
+    "playwright": "^1.53.1",
+    "sinon-chrome": "^3.0.1"
+  }
+}

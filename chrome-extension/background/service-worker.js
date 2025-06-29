@@ -5,7 +5,7 @@
 // Extension lifecycle
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Bookmark Health Checker installed:', details.reason);
-  
+
   if (details.reason === 'install') {
     // Set up default settings
     chrome.storage.sync.set({
@@ -16,7 +16,7 @@ chrome.runtime.onInstalled.addListener((details) => {
         autoDelete: false
       }
     });
-    
+
     // Show welcome notification
     chrome.notifications.create({
       type: 'basic',
@@ -30,7 +30,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 // Handle alarm events for scheduled scans
 chrome.alarms.onAlarm.addListener((alarm) => {
   console.log('Alarm triggered:', alarm.name);
-  
+
   if (alarm.name === 'bookmark-health-check') {
     performScheduledScan();
   }
@@ -51,28 +51,28 @@ chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Message received:', message);
-  
+
   switch (message.type) {
-    case 'SCHEDULE_SCAN':
-      scheduleNextScan(message.frequency);
-      sendResponse({ success: true });
-      break;
-      
-    case 'CANCEL_SCHEDULED_SCAN':
-      cancelScheduledScan();
-      sendResponse({ success: true });
-      break;
-      
-    case 'GET_SETTINGS':
-      getSettings().then(settings => sendResponse(settings));
-      return true; // Keep message channel open for async response
-      
-    case 'UPDATE_SETTINGS':
-      updateSettings(message.settings).then(() => sendResponse({ success: true }));
-      return true;
-      
-    default:
-      console.warn('Unknown message type:', message.type);
+  case 'SCHEDULE_SCAN':
+    scheduleNextScan(message.frequency);
+    sendResponse({ success: true });
+    break;
+
+  case 'CANCEL_SCHEDULED_SCAN':
+    cancelScheduledScan();
+    sendResponse({ success: true });
+    break;
+
+  case 'GET_SETTINGS':
+    getSettings().then(settings => sendResponse(settings));
+    return true; // Keep message channel open for async response
+
+  case 'UPDATE_SETTINGS':
+    updateSettings(message.settings).then(() => sendResponse({ success: true }));
+    return true;
+
+  default:
+    console.warn('Unknown message type:', message.type);
   }
 });
 
@@ -82,36 +82,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function performScheduledScan() {
   try {
     console.log('Starting scheduled bookmark scan...');
-    
+
     const settings = await getSettings();
     if (!settings.autoCheck) {
       console.log('Auto-check is disabled, skipping scan');
       return;
     }
-    
+
     // Import the BookmarkChecker (note: this is a simplified approach)
     // In a real implementation, you might need to use importScripts or modules
     const { BookmarkChecker } = await import('../utils/bookmark-checker.js');
     const checker = new BookmarkChecker();
-    
+
     // Get all bookmarks
     const bookmarks = await checker.getAllBookmarks();
-    
+
     if (bookmarks.length === 0) {
       console.log('No bookmarks found to scan');
       return;
     }
-    
+
     // Perform a quick scan (smaller batch size for background)
     const results = await checker.checkMultipleBookmarks(bookmarks, null);
     const categorizedResults = checker.categorizeResults(results);
-    
+
     // Count issues
-    const issueCount = categorizedResults['connection-error'].length + 
-                      categorizedResults.timeout.length + 
-                      categorizedResults.unknown.length + 
+    const issueCount = categorizedResults['connection-error'].length +
+                      categorizedResults.timeout.length +
+                      categorizedResults.unknown.length +
                       categorizedResults['check-failed'].length;
-    
+
     // Update badge
     if (issueCount > 0) {
       chrome.action.setBadgeText({ text: issueCount.toString() });
@@ -119,7 +119,7 @@ async function performScheduledScan() {
     } else {
       chrome.action.setBadgeText({ text: '' });
     }
-    
+
     // Store results
     const scanResults = {
       timestamp: Date.now(),
@@ -127,13 +127,13 @@ async function performScheduledScan() {
       categories: categorizedResults,
       recommendations: checker.getDeletionRecommendations(categorizedResults)
     };
-    
+
     await chrome.storage.local.set({
       lastScan: Date.now(),
       scanResults: scanResults,
       totalBookmarks: bookmarks.length
     });
-    
+
     // Show notification if issues found
     if (settings.notifications && issueCount > 0) {
       chrome.notifications.create({
@@ -143,9 +143,9 @@ async function performScheduledScan() {
         message: `Found ${issueCount} problematic bookmarks. Click to review.`
       });
     }
-    
+
     console.log(`Scheduled scan completed. Found ${issueCount} issues.`);
-    
+
   } catch (error) {
     console.error('Scheduled scan failed:', error);
   }
@@ -157,33 +157,33 @@ async function performScheduledScan() {
 async function scheduleNextScan(frequency = 'weekly') {
   // Clear existing alarms
   await chrome.alarms.clear('bookmark-health-check');
-  
+
   let delayInMinutes;
   let periodInMinutes;
-  
+
   switch (frequency) {
-    case 'daily':
-      delayInMinutes = 60; // Start in 1 hour
-      periodInMinutes = 24 * 60; // Every 24 hours
-      break;
-    case 'weekly':
-      delayInMinutes = 60; // Start in 1 hour
-      periodInMinutes = 7 * 24 * 60; // Every week
-      break;
-    case 'monthly':
-      delayInMinutes = 60; // Start in 1 hour
-      periodInMinutes = 30 * 24 * 60; // Every 30 days
-      break;
-    default:
-      console.log('Invalid frequency or manual mode, not scheduling');
-      return;
+  case 'daily':
+    delayInMinutes = 60; // Start in 1 hour
+    periodInMinutes = 24 * 60; // Every 24 hours
+    break;
+  case 'weekly':
+    delayInMinutes = 60; // Start in 1 hour
+    periodInMinutes = 7 * 24 * 60; // Every week
+    break;
+  case 'monthly':
+    delayInMinutes = 60; // Start in 1 hour
+    periodInMinutes = 30 * 24 * 60; // Every 30 days
+    break;
+  default:
+    console.log('Invalid frequency or manual mode, not scheduling');
+    return;
   }
-  
+
   chrome.alarms.create('bookmark-health-check', {
     delayInMinutes,
     periodInMinutes
   });
-  
+
   console.log(`Scheduled bookmark health check every ${frequency}`);
 }
 
@@ -213,14 +213,14 @@ async function getSettings() {
  */
 async function updateSettings(newSettings) {
   await chrome.storage.sync.set({ settings: newSettings });
-  
+
   // Update scheduled scans based on new settings
   if (newSettings.autoCheck) {
     await scheduleNextScan(newSettings.checkFrequency);
   } else {
     await cancelScheduledScan();
   }
-  
+
   console.log('Settings updated:', newSettings);
 }
 
@@ -231,10 +231,10 @@ async function updateScanResultsAfterDeletion(deletedBookmarkId) {
   try {
     const result = await chrome.storage.local.get('scanResults');
     if (!result.scanResults) return;
-    
+
     const scanResults = result.scanResults;
     let updated = false;
-    
+
     // Remove the deleted bookmark from all categories
     Object.keys(scanResults.categories).forEach(category => {
       const originalLength = scanResults.categories[category].length;
@@ -245,16 +245,16 @@ async function updateScanResultsAfterDeletion(deletedBookmarkId) {
         updated = true;
       }
     });
-    
+
     if (updated) {
       await chrome.storage.local.set({ scanResults });
-      
+
       // Update badge count
-      const issueCount = scanResults.categories['connection-error'].length + 
-                        scanResults.categories.timeout.length + 
-                        scanResults.categories.unknown.length + 
+      const issueCount = scanResults.categories['connection-error'].length +
+                        scanResults.categories.timeout.length +
+                        scanResults.categories.unknown.length +
                         scanResults.categories['check-failed'].length;
-      
+
       if (issueCount > 0) {
         chrome.action.setBadgeText({ text: issueCount.toString() });
       } else {
@@ -285,9 +285,9 @@ chrome.action.onClicked.addListener((tab) => {
 /**
  * Initialize on startup
  */
-chrome.runtime.onStartup.addListener(async () => {
+chrome.runtime.onStartup.addListener(async() => {
   console.log('Extension startup');
-  
+
   const settings = await getSettings();
   if (settings.autoCheck) {
     await scheduleNextScan(settings.checkFrequency);
@@ -295,9 +295,9 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 // Initialize immediately when service worker starts
-(async () => {
+(async() => {
   const settings = await getSettings();
   if (settings.autoCheck) {
     await scheduleNextScan(settings.checkFrequency);
   }
-})(); 
+})();

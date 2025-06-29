@@ -24,9 +24,13 @@ class BookmarkChecker {
    */
   extractBookmarksFromTree(tree) {
     const bookmarks = [];
-    
+
     const traverse = (nodes) => {
+      if (!nodes || !Array.isArray(nodes)) return;
+
       for (const node of nodes) {
+        if (!node) continue; // Skip null/undefined nodes
+
         if (node.url) {
           bookmarks.push({
             id: node.id,
@@ -41,7 +45,7 @@ class BookmarkChecker {
         }
       }
     };
-    
+
     traverse(tree);
     return bookmarks;
   }
@@ -52,7 +56,7 @@ class BookmarkChecker {
   async checkBookmarkHealth(bookmark) {
     const cacheKey = bookmark.url;
     const cached = this.cache.get(cacheKey);
-    
+
     // Return cached result if still valid
     if (cached && (Date.now() - cached.timestamp) < this.cacheExpiry) {
       return { ...cached.result, fromCache: true };
@@ -100,7 +104,7 @@ class BookmarkChecker {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(url, {
+      await fetch(url, {
         method: 'HEAD',
         signal: controller.signal,
         mode: 'no-cors', // Required for cross-origin requests
@@ -137,6 +141,15 @@ class BookmarkChecker {
    * Categorize errors and URLs based on patterns
    */
   categorizeError(url, error) {
+    if (!error) {
+      return {
+        status: 'error',
+        category: 'unknown',
+        message: 'No error information provided',
+        action: 'review'
+      };
+    }
+
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
 
@@ -169,7 +182,7 @@ class BookmarkChecker {
     }
 
     // Generic error categorization
-    if (error.message.includes('Failed to fetch')) {
+    if (error.message && error.message.includes('Failed to fetch')) {
       return {
         status: 'error',
         category: 'connection-error',
@@ -181,7 +194,7 @@ class BookmarkChecker {
     return {
       status: 'error',
       category: 'unknown',
-      message: error.message,
+      message: error.message || 'Unknown error',
       action: 'review'
     };
   }
@@ -196,9 +209,9 @@ class BookmarkChecker {
     for (let i = 0; i < bookmarks.length; i += batchSize) {
       const batch = bookmarks.slice(i, i + batchSize);
       const batchPromises = batch.map(bookmark => this.checkBookmarkHealth(bookmark));
-      
+
       const batchResults = await Promise.allSettled(batchPromises);
-      
+
       batchResults.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           results.push(result.value);
@@ -285,4 +298,6 @@ class BookmarkChecker {
   clearCache() {
     this.cache.clear();
   }
-} 
+}
+
+module.exports = { BookmarkChecker };
