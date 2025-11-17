@@ -60,10 +60,17 @@ zip -r "${OUTPUT_FILE}" . \
     -x ".claude/*" \
     -x "*.zip" \
     -x "package-extension.sh" \
+    -x "package-extension.test.sh" \
     -x "PUBLISHING.md" \
     -x "README.md" \
+    -x "TESTING.md" \
     -x ".eslintcache" \
     -x ".npm/*" \
+    -x "__tests__/*" \
+    -x "**/*.test.js" \
+    -x "**/*.spec.js" \
+    -x "jest.config.js" \
+    -x "playwright.config.js" \
     > /dev/null
 
 # Verify the ZIP was created

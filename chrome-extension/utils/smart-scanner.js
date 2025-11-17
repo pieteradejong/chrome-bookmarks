@@ -224,3 +224,10 @@ class SmartBookmarkScanner {
     }
   }
 }
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SmartBookmarkScanner;
+} else if (typeof window !== 'undefined') {
+  window.SmartBookmarkScanner = SmartBookmarkScanner;
+}

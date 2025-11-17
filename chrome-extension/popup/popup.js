@@ -1323,7 +1323,15 @@ class PopupController {
 }
 
 // Initialize popup when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  new PopupController();
-}); 
-}); 
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('DOMContentLoaded', () => {
+    new PopupController();
+  });
+}
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PopupController;
+} else if (typeof window !== 'undefined') {
+  window.PopupController = PopupController;
+} 
