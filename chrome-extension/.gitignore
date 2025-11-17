@@ -37,3 +37,6 @@ Thumbs.db
 
 # Claude-specific files
 .claude/
+
+# Packaged extension files
+*.zip

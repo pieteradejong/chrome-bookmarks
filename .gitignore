@@ -164,3 +164,8 @@ data/bookmarks*.json
 
 # Local TODO tracking
 TODO.md
+
+# Chrome extension packaging
+*.zip
+bookmark-health-checker.zip
+chrome-bookmarks-extension.zip
