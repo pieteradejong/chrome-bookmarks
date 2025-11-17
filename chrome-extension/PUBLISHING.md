@@ -40,7 +40,7 @@ Before publishing, ensure your extension is ready:
 
    The script will:
    - Automatically detect the version from `manifest.json`
-   - Create a ZIP file named `bookmark-health-checker-v{VERSION}.zip` in the parent directory
+   - Create a ZIP file named `chrome-bookmark-assistant-v{VERSION}.zip` in the parent directory
    - Exclude all unnecessary files (tests, coverage, git files, etc.)
    - Display the file location and next steps
 
@@ -49,7 +49,7 @@ Before publishing, ensure your extension is ready:
 1. **Create a ZIP file** of your extension:
    ```bash
    cd chrome-extension
-   zip -r ../bookmark-health-checker.zip . -x "*.git*" -x "node_modules/*" -x "*.DS_Store" -x "coverage/*" -x "test-results/*" -x "playwright-report/*"
+   zip -r ../chrome-bookmark-assistant.zip . -x "*.git*" -x "node_modules/*" -x "*.DS_Store" -x "coverage/*" -x "test-results/*" -x "playwright-report/*"
    ```
 
    **Important**: Exclude:
@@ -82,14 +82,14 @@ Fill out the **Store Listing** tab with:
 
 #### Required Information
 
-- **Name**: "Bookmark Health Checker" (or your chosen name)
+- **Name**: "Chrome Bookmark Assistant"
 - **Summary**: Short description (132 characters max)
   ```
   Find and clean up broken, duplicate, and unused bookmarks automatically with smart health checking.
   ```
 - **Description**: Detailed description (markdown supported)
   ```
-  # Bookmark Health Checker
+  # Chrome Bookmark Assistant
   
   A powerful Chrome extension that helps you find and clean up broken, duplicate, and unused bookmarks automatically.
   

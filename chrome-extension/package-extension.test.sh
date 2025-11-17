@@ -60,11 +60,11 @@ cat > manifest.json <<EOF
 }
 EOF
 
-EXTENSION_NAME="bookmark-health-checker"
+EXTENSION_NAME="chrome-bookmark-assistant"
 VERSION=$(grep -o '"version": "[^"]*"' manifest.json | cut -d'"' -f4)
 OUTPUT_FILE="../${EXTENSION_NAME}-v${VERSION}.zip"
 
-EXPECTED_NAME="../bookmark-health-checker-v1.0.0.zip"
+EXPECTED_NAME="../chrome-bookmark-assistant-v1.0.0.zip"
 if [ "$OUTPUT_FILE" != "$EXPECTED_NAME" ]; then
     echo "❌ FAIL: ZIP file name format incorrect. Expected '$EXPECTED_NAME', got '$OUTPUT_FILE'"
     exit 1

@@ -1,10 +1,10 @@
 /**
- * Background service worker for the Bookmark Health Checker extension
+ * Background service worker for the Chrome Bookmark Assistant extension
  */
 
 // Extension lifecycle
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('Bookmark Health Checker installed:', details.reason);
+  console.log('Chrome Bookmark Assistant installed:', details.reason);
 
   if (details.reason === 'install') {
     // Set up default settings
@@ -21,7 +21,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.notifications.create({
       type: 'basic',
       iconUrl: '../icons/icon48.png',
-      title: 'Bookmark Health Checker',
+      title: 'Chrome Bookmark Assistant',
       message: 'Extension installed! Click the icon to start checking your bookmarks.'
     });
   }

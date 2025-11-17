@@ -1,4 +1,4 @@
-# Bookmark Health Checker Chrome Extension
+# Chrome Bookmark Assistant
 
 A powerful Chrome extension that helps you find and clean up broken, duplicate, and unused bookmarks automatically.
 
@@ -38,7 +38,7 @@ A powerful Chrome extension that helps you find and clean up broken, duplicate, 
 
 ### From Chrome Web Store (Coming Soon)
 1. Visit the Chrome Web Store
-2. Search for "Bookmark Health Checker"
+2. Search for "Chrome Bookmark Assistant"
 3. Click "Add to Chrome"
 
 ### Developer Installation

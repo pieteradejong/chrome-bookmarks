@@ -1157,7 +1157,7 @@ class PopupController {
     chrome.notifications.create({
       type: 'basic',
       iconUrl: '../icons/icon48.png',
-      title: 'Bookmark Health Checker',
+      title: 'Chrome Bookmark Assistant',
       message: message
     });
   }

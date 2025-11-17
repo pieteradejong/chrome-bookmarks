@@ -57,7 +57,7 @@ describe('Service Worker', () => {
 
       expect(chrome.notifications.create).toHaveBeenCalled();
       const callArgs = chrome.notifications.create.getCall(0).args[0];
-      expect(callArgs.title).toBe('Bookmark Health Checker');
+      expect(callArgs.title).toBe('Chrome Bookmark Assistant');
       expect(callArgs.message).toContain('installed');
     });
 

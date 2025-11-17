@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Bookmark Health Checker",
+  "name": "Chrome Bookmark Assistant",
   "version": "1.0.0",
   "description": "Find and clean up broken, duplicate, and unused bookmarks automatically",
   
@@ -23,7 +23,7 @@
   
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Bookmark Health Checker"
+    "default_title": "Chrome Bookmark Assistant"
   },
   
   "options_page": "options/options.html",

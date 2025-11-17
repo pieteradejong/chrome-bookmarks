@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-EXTENSION_NAME="bookmark-health-checker"
+EXTENSION_NAME="chrome-bookmark-assistant"
 VERSION=$(grep -o '"version": "[^"]*"' manifest.json | cut -d'"' -f4)
 OUTPUT_FILE="../${EXTENSION_NAME}-v${VERSION}.zip"
 
