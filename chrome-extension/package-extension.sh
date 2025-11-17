@@ -71,6 +71,7 @@ zip -r "${OUTPUT_FILE}" . \
     -x "**/*.spec.js" \
     -x "jest.config.js" \
     -x "playwright.config.js" \
+    -x "screenshots/*" \
     > /dev/null
 
 # Verify the ZIP was created

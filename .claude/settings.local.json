@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx jest:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(./run-tests.sh:*)",
+      "Bash(timeout:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(/dev/null)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(echo:*)"
+    ],
+    "deny": []
+  }
+}

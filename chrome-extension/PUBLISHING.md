@@ -147,8 +147,9 @@ Complete the **Privacy** tab:
   - Results stored locally using Chrome storage APIs
 
 - **Privacy Policy**: 
-  - If you don't collect data, you can state: "This extension processes all data locally and does not transmit any information to external servers."
-  - For a full privacy policy, create a `PRIVACY.md` file and host it (GitHub Pages works well)
+  - Privacy policy is available at: `https://pieteradejong.github.io/chrome-bookmarks/`
+  - See `PRIVACY.md` in the chrome-extension directory for the full policy
+  - GitHub Pages is configured via `.github/workflows/pages.yml`
 
 ### Step 5: Distribution Settings
 

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome Bookmark Assistant - Privacy Policy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #666;
+            margin-top: 20px;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .summary {
+            background: #e8f4f8;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .contact {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chrome Bookmark Assistant - Privacy Policy</h1>
+        
+        <p><strong>Last Updated:</strong> December 2024</p>
+
+        <div class="summary">
+            <strong>Summary:</strong> Chrome Bookmark Assistant processes all data locally on your device. 
+            Your bookmarks and scan results never leave your computer. No external data transmission occurs.
+        </div>
+
+        <h2>Data Collection: None</h2>
+        <p>Chrome Bookmark Assistant does <strong>not</strong> collect, transmit, or store any personal data or user information.</p>
+
+        <h2>How We Handle Your Data</h2>
+
+        <h3>Local Processing Only</h3>
+        <ul>
+            <li>All bookmark checking happens <strong>locally</strong> in your browser</li>
+            <li>No data is sent to external servers or third-party services</li>
+            <li>No analytics, tracking, or user identification</li>
+        </ul>
+
+        <h3>Data Storage</h3>
+        <ul>
+            <li>Scan results are stored <strong>locally</strong> using Chrome's built-in storage API</li>
+            <li>Data remains on your device and is never transmitted</li>
+            <li>You can clear stored data at any time through Chrome's extension settings</li>
+        </ul>
+
+        <h3>Network Requests</h3>
+        <ul>
+            <li>The extension makes direct HTTP/HTTPS requests to check bookmark URLs</li>
+            <li>These requests use <code>no-cors</code> mode, which limits the information that can be read</li>
+            <li>Requests are made only to verify bookmark accessibility</li>
+            <li>No request data is logged or transmitted to external services</li>
+        </ul>
+
+        <h2>Permissions Used</h2>
+
+        <h3><code>bookmarks</code></h3>
+        <p><strong>Purpose:</strong> To read and manage your bookmarks<br>
+        <strong>Usage:</strong> Required to scan bookmarks and organize them</p>
+
+        <h3><code>storage</code></h3>
+        <p><strong>Purpose:</strong> To save scan results locally<br>
+        <strong>Usage:</strong> Stores scan results and settings on your device only</p>
+
+        <h3><code>downloads</code></h3>
+        <p><strong>Purpose:</strong> To export scan results as CSV files<br>
+        <strong>Usage:</strong> Allows you to download your scan results for personal use</p>
+
+        <h3><code>alarms</code></h3>
+        <p><strong>Purpose:</strong> To schedule automatic bookmark scans<br>
+        <strong>Usage:</strong> Runs background scans at your chosen frequency (if enabled)</p>
+
+        <h3><code>activeTab</code></h3>
+        <p><strong>Purpose:</strong> To open bookmarks in new tabs<br>
+        <strong>Usage:</strong> Allows you to visit bookmarks directly from the extension</p>
+
+        <h3><code>notifications</code></h3>
+        <p><strong>Purpose:</strong> To notify you of scan completion and issues<br>
+        <strong>Usage:</strong> Shows notifications when scans complete or issues are found</p>
+
+        <h3><code>http://*/*</code> and <code>https://*/*</code></h3>
+        <p><strong>Purpose:</strong> To check bookmark URL accessibility<br>
+        <strong>Usage:</strong> Makes local requests to verify if bookmarks are accessible. All checks happen locally in your browser. No data is transmitted to external servers.</p>
+
+        <h2>Your Privacy Rights</h2>
+        <ul>
+            <li><strong>No Data Collection:</strong> We don't collect any data</li>
+            <li><strong>No Data Sharing:</strong> There's no data to share</li>
+            <li><strong>No Tracking:</strong> We don't track your usage</li>
+            <li><strong>Full Control:</strong> You can disable the extension or clear its data at any time</li>
+        </ul>
+
+        <h2>Changes to This Policy</h2>
+        <p>If we make changes to this privacy policy, we will update the "Last Updated" date. Since we don't collect data, changes would only occur if we add new features that require different permissions.</p>
+
+        <div class="contact">
+            <h2>Contact</h2>
+            <p>If you have questions about this privacy policy or how the extension handles your data, please open an issue on the <a href="https://github.com/pieteradejong/chrome-bookmarks">GitHub repository</a>.</p>
+        </div>
+    </div>
+</body>
+</html>
+
