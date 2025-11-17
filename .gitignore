@@ -169,3 +169,6 @@ TODO.md
 *.zip
 bookmark-health-checker.zip
 chrome-bookmarks-extension.zip
+
+# Chrome Web Store submission record (contains submission details)
+chrome-extension/CHROME_WEB_STORE_SUBMISSION.md
