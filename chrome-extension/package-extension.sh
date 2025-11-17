@@ -72,6 +72,7 @@ zip -r "${OUTPUT_FILE}" . \
     -x "jest.config.js" \
     -x "playwright.config.js" \
     -x "screenshots/*" \
+    -x "manifest-minimal.json" \
     > /dev/null
 
 # Verify the ZIP was created
