@@ -137,41 +137,16 @@ chrome-bookmarks/
 
 ## 📊 Roadmap
 
-### Phase 1: Foundation Enhancement (Weeks 1-2)
-- [ ] Refactor bookmark-checker.js with ES6 modules
-- [ ] Implement IndexedDB storage
-- [ ] Add comprehensive error handling
-- [ ] Set up testing framework
+For detailed development roadmap with all phases, tasks, and success metrics, see **[ROADMAP.md](ROADMAP.md)**.
 
-### Phase 2: Core Features (Weeks 3-4)
-- [ ] Duplicate detection and management
-- [ ] Smart bookmark organization
-- [ ] Enhanced validation with favicons
-- [ ] Bulk operations interface
+The roadmap is organized into 6 phases over approximately 12 weeks:
 
-### Phase 3: UI Enhancement (Weeks 5-6)
-- [ ] Modern UI framework implementation
-- [ ] Enhanced bookmark display with previews
-- [ ] Comprehensive settings page
-- [ ] Context menu integration
-
-### Phase 4: Advanced Features (Weeks 7-8)
-- [ ] Advanced search and filtering
-- [ ] Automation and scheduling
-- [ ] Export/import functionality
-- [ ] Performance optimization
-
-### Phase 5: Commercial Features (Weeks 9-10)
-- [ ] Premium features implementation
-- [ ] Chrome Web Store preparation
-- [ ] Monetization setup
-- [ ] Marketing materials
-
-### Phase 6: Launch (Weeks 11-12)
-- [ ] Comprehensive testing
-- [ ] User feedback integration
-- [ ] Chrome Web Store submission
-- [ ] Post-launch monitoring
+- **Phase 1**: Foundation Enhancement (Weeks 1-2)
+- **Phase 2**: Core Features Enhancement (Weeks 3-4)
+- **Phase 3**: User Interface Enhancement (Weeks 5-6)
+- **Phase 4**: Advanced Features (Weeks 7-8)
+- **Phase 5**: Commercial Features (Weeks 9-10)
+- **Phase 6**: Polish and Launch (Weeks 11-12)
 
 ## 🤝 Contributing
 
@@ -223,7 +198,8 @@ MIT License - see LICENSE file for details
 
 ## 📚 Documentation
 
-- **PRD**: See `prd.md` for detailed product requirements and roadmap
+- **Roadmap**: See `ROADMAP.md` for detailed development roadmap with all phases and tasks
+- **PRD**: See `prd.md` for detailed product requirements and specifications
 - **TODO**: See `TODO.md` for current development tasks
 - **Archived Components**: See `archived/README.md` for previous architecture
 
